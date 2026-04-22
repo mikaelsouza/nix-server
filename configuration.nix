@@ -11,6 +11,15 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  virtualisation = {
+    containers.enable = true;
+    podman = {
+      enable = true;
+      dockerCompat = true;
+      defaultNetwork.settings.dns_enabled = true;
+    }
+  }
+
   services.comin = {
     enable = true;
     remotes = [{
@@ -62,7 +71,7 @@
   users.users.mikaels = {
     isNormalUser = true;
     description = "Mikael Souza";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "podman" ];
     packages = with pkgs; [];
   };
 
