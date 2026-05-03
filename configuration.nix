@@ -4,12 +4,15 @@
 
 { config, pkgs, ... }:
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   virtualisation = {
     containers.enable = true;
@@ -22,11 +25,13 @@
 
   services.comin = {
     enable = true;
-    remotes = [{
-      name = "origin";
-      url = "https://github.com/mikaelsouza/nix-server.git";
-      branches.main.name = "main";
-    }];
+    remotes = [
+      {
+        name = "origin";
+        url = "https://github.com/mikaelsouza/nix-server.git";
+        branches.main.name = "main";
+      }
+    ];
   };
 
   # Bootloader.
@@ -71,8 +76,12 @@
   users.users.mikaels = {
     isNormalUser = true;
     description = "Mikael Souza";
-    extraGroups = [ "networkmanager" "wheel" "podman" ];
-    packages = with pkgs; [];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "podman"
+    ];
+    packages = with pkgs; [ ];
   };
 
   services.openssh = {
@@ -89,11 +98,11 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-  #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
-  #  wget
+    #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    #  wget
     distrobox
     git
-    vim  
+    vim
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -110,7 +119,10 @@
   # services.openssh.enable = true;
 
   # Open ports in the firewall.
-  networking.firewall.allowedTCPPorts = [ 22 2222 ];
+  networking.firewall.allowedTCPPorts = [
+    22
+    2222
+  ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
