@@ -86,7 +86,9 @@
       "wheel"
       "podman"
     ];
-    packages = with pkgs; [ ];
+    packages = with pkgs; [
+      neovim
+    ];
   };
 
   services.openssh = {
