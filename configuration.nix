@@ -38,6 +38,11 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  boot.extraModulePackages = [ config.boot.kernelPackages.r8168 ];
+  boot.blacklistedKernelModules = [ "r8169" ];
+  boot.kernelModules = [ "r8168" ];
+  boot.extraModprobeConfig = "options r8168 aspm=1 eee=1";
+
   networking.hostName = "silmeria"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
