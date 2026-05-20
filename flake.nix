@@ -14,8 +14,8 @@
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
-        # This points to your existing configuration
-        ./configuration.nix
+        # This points to the host entrypoint
+        ./hosts/silmeria
         # This pulls in the Comin module automatically
         comin.nixosModules.comin
       ];
