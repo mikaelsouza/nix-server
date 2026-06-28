@@ -8,6 +8,7 @@
     # Include modular global systems
     ../../modules/system.nix
     ../../modules/services.nix
+    ../../modules/minecraft.nix
     ../../modules/virtualization.nix
     ../../modules/users.nix
   ];
