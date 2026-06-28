@@ -9,6 +9,7 @@
     ../../modules/system.nix
     ../../modules/services.nix
     ../../modules/minecraft.nix
+    ../../modules/tailscale.nix
     ../../modules/virtualization.nix
     ../../modules/users.nix
   ];
