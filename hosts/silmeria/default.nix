@@ -5,14 +5,18 @@
     # Include hardware configuration
     ./hardware-configuration.nix
 
-    # Include modular global systems
-    ../../modules/system.nix
-    ../../modules/services.nix
-    ../../modules/minecraft.nix
-    ../../modules/tailscale.nix
-    ../../modules/virtualization.nix
-    ../../modules/users.nix
+    # Include all module options definitions
+    ../../modules
   ];
+
+  # Enable core and custom services options
+  my.core.system.enable = true;
+  my.core.users.enable = true;
+  my.services.comin.enable = true;
+  my.services.openssh.enable = true;
+  my.services.minecraft.enable = true;
+  my.services.tailscale.enable = true;
+  my.services.virtualization.enable = true;
 
   # Bootloader settings
   boot.loader.systemd-boot.enable = true;
