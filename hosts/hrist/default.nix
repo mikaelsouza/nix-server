@@ -1,6 +1,10 @@
 { pkgs, ... }:
 
 {
+  imports = [
+    ../../modules/common/packages.nix
+  ];
+
   # Prevent nix-darwin from clashing with the Determinate installer's daemon
   nix.enable = false;
 
@@ -8,8 +12,6 @@
 
   # Install standard Nix packages
   environment.systemPackages = [
-    pkgs.neovim
-    pkgs.git
     pkgs.nil
     pkgs.nixd
     pkgs.nixpkgs-fmt
