@@ -23,9 +23,7 @@ in
         "wheel"
         "podman"
       ];
-      packages = with pkgs; [
-        neovim
-      ];
+      packages = with pkgs; [ ];
     };
   };
 }
