@@ -1,6 +1,6 @@
 # nix-server
 
-Unified Nix Flake configuration for managing both **macOS** workstations and **NixOS** servers in a single repository, pinned to the **Nixpkgs 26.05 Stable** channel.
+Unified, modular Nix Flake repository for managing both **macOS** workstations and **NixOS** servers, pinned to the **Nixpkgs 26.05 Stable** channel.
 
 ---
 
@@ -9,35 +9,46 @@ Unified Nix Flake configuration for managing both **macOS** workstations and **N
 | Host | Operating System | Architecture | Purpose | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
 | **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (Ghostty, Zed, OrbStack, Chrome, etc.), Zsh direnv hook |
-| **`silmeria`** | NixOS 25.11 / 26.05 | `x86_64-linux` | Home Server | Comin GitOps, OpenSSH, Tailscale VPN, Minecraft Server, Podman Virtualization |
+| **`silmeria`** | NixOS 26.05 | `x86_64-linux` | Home Server | Comin GitOps, OpenSSH, Tailscale VPN, Minecraft Server, Podman Virtualization |
 
 ---
 
-## 📂 Repository Layout
+## 📂 Modular Repository Layout
+
+The repository follows a clean 3-tier separation: **Hosts** (machine-specific targets), **Modules** (shared and OS-specific capabilities), and a minimal **Flake** entrypoint.
 
 ```text
 nix-server/
-├── flake.nix                         # Multi-host entrypoint (hrist + silmeria)
-├── flake.lock                        # Pinned dependencies
+├── flake.nix                         # Minimal entrypoint (defines inputs and host mappings)
+├── flake.lock                        # Pinned flake dependencies
 ├── hosts/
 │   ├── hrist/
-│   │   └── default.nix               # macOS host configuration & Homebrew casks
+│   │   └── default.nix               # macOS host entrypoint (imports common & darwin modules)
 │   └── silmeria/
-│       ├── default.nix               # NixOS server host configuration & service toggles
-│       └── hardware-configuration.nix# Server hardware & file system definitions
+│       ├── default.nix               # NixOS server entrypoint (imports common & nixos modules)
+│       └── hardware-configuration.nix# Server hardware and file system definitions
 └── modules/
-    ├── default.nix                   # Modules entrypoint
-    ├── common/
-    │   └── packages.nix              # Shared cross-platform system packages (git, neovim)
-    ├── core/
-    │   ├── system.nix                # System locales, timezones, and core tools
-    │   └── users.nix                 # User account definitions
-    └── services/
-        ├── comin.nix                 # GitOps continuous deployment service
-        ├── minecraft.nix             # Declarative Minecraft server unit
-        ├── openssh.nix               # SSH daemon configuration & firewall rules
-        ├── tailscale.nix             # Mesh VPN configuration
-        └── virtualization.nix        # Podman container runtime & tools
+    ├── common/                       # Cross-platform configurations (Linux & macOS)
+    │   ├── default.nix               # Aggregates common modules
+    │   ├── nix.nix                   # Flakes, experimental-features, and allowUnfree
+    │   ├── packages.nix              # Shared CLI tools (git, neovim, nil, nixd, direnv)
+    │   └── shell.nix                 # Zsh enable and direnv interactive integration
+    ├── darwin/                       # macOS-specific modules
+    │   ├── default.nix               # Aggregates darwin modules
+    │   ├── homebrew.nix              # Homebrew taps, brews, and GUI casks
+    │   ├── system.nix                # macOS daemon settings (nix.enable = false)
+    │   └── users.nix                 # macOS primaryUser definition
+    └── nixos/                        # NixOS-specific modules
+        ├── default.nix               # Aggregates NixOS core and services
+        ├── core/
+        │   ├── system.nix            # System locales, timezones, and core tools
+        │   └── users.nix             # Linux user accounts and groups
+        └── services/
+            ├── comin.nix             # GitOps continuous deployment service
+            ├── minecraft.nix         # Declarative PaperMC Minecraft server
+            ├── openssh.nix           # SSH daemon configuration & firewall rules
+            ├── tailscale.nix         # Mesh VPN configuration
+            └── virtualization.nix    # Podman container runtime & Distrobox
 ```
 
 ---
