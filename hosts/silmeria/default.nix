@@ -5,8 +5,9 @@
     # Include hardware configuration
     ./hardware-configuration.nix
 
-    # Include all module options definitions
-    ../../modules
+    # Include shared and NixOS module definitions
+    ../../modules/common
+    ../../modules/nixos
   ];
 
   # Enable core and custom services options

@@ -2,7 +2,6 @@
 
 {
   imports = [
-    ./common/packages.nix
     ./core/system.nix
     ./core/users.nix
     ./services/comin.nix
