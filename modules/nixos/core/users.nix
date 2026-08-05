@@ -23,8 +23,7 @@ in
         "wheel"
         "podman"
       ];
-      packages = with pkgs; [
-      ];
+      packages = with pkgs; [ ];
     };
   };
 }
