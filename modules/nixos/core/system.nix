@@ -14,12 +14,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable experimental Nix features
-    nix.settings.experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-
     # Set time zone
     time.timeZone = "America/Sao_Paulo";
 
@@ -44,12 +38,8 @@ in
       variant = "";
     };
 
-    # Allow unfree packages
-    nixpkgs.config.allowUnfree = true;
-
     # List packages installed in system profile
     environment.systemPackages = with pkgs; [
-      git
       vim
       powertop
     ];
