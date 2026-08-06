@@ -1,9 +1,6 @@
 { ... }:
 
 {
-  # Prevent Homebrew JSON API parsing bugs with legacy cask attributes like command_wrapper
-  environment.variables.HOMEBREW_NO_INSTALL_FROM_API = "1";
-
   # Manage Homebrew packages (Casks, Mac App Store apps, Formulas)
   homebrew = {
     enable = true;
