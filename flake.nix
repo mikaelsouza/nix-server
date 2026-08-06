@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -19,6 +20,7 @@
     inputs@{
       self,
       nixpkgs,
+      nixpkgs-unstable,
       nix-darwin,
       nix-homebrew,
       comin,
@@ -46,6 +48,13 @@
         modules = [
           ./hosts/silmeria
           comin.nixosModules.comin
+          ({ ... }: {
+            nixpkgs.overlays = [
+              (final: prev: {
+                antigravity-cli = nixpkgs-unstable.legacyPackages.x86_64-linux.antigravity-cli;
+              })
+            ];
+          })
         ];
       };
     };
