@@ -23,6 +23,7 @@
       "vlc"
       "whatsapp"
       "obsidian"
+      "opencode-desktop"
     ];
   };
 
