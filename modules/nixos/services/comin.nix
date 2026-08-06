@@ -27,5 +27,8 @@ in
         })
       ];
     };
+
+    systemd.services.comin.environment.COMIN_CONFIG_HASH =
+      builtins.hashString "sha256" (builtins.toJSON config.services.comin);
   };
 }
