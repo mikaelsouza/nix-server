@@ -42,6 +42,7 @@ in
     environment.systemPackages = with pkgs; [
       vim
       powertop
+      antigravity
     ];
 
     # Stateful data release version (do not change unless read the manual)
