@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   ...
 }:
 
@@ -42,7 +43,7 @@ in
     environment.systemPackages = with pkgs; [
       vim
       powertop
-      pkgs.antigravity-cli
+      pkgs-unstable.antigravity-cli
     ];
 
     # Stateful data release version (do not change unless read the manual)

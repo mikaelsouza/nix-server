@@ -44,17 +44,16 @@
       # Server Host Configuration
       nixosConfigurations."silmeria" = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = {
+          inherit inputs;
+          pkgs-unstable = import nixpkgs-unstable {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+          };
+        };
         modules = [
           ./hosts/silmeria
           comin.nixosModules.comin
-          ({ ... }: {
-            nixpkgs.overlays = [
-              (final: prev: {
-                antigravity-cli = nixpkgs-unstable.legacyPackages.x86_64-linux.antigravity-cli;
-              })
-            ];
-          })
         ];
       };
     };
