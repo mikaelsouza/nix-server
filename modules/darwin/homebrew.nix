@@ -1,6 +1,9 @@
 { ... }:
 
 {
+  # Prevent Homebrew JSON API parsing bugs with legacy cask attributes like command_wrapper
+  environment.variables.HOMEBREW_NO_INSTALL_FROM_API = "1";
+
   # Manage Homebrew packages (Casks, Mac App Store apps, Formulas)
   homebrew = {
     enable = true;
@@ -9,7 +12,7 @@
     brews = [ ];
     casks = [
       "ghostty"
-      # "musescore" # Upstream Homebrew cask definition contains deprecated `command_wrapper`
+      "musescore"
       "google-chrome"
       "google-drive"
       "zed"
@@ -20,7 +23,7 @@
       "orbstack"
       "rectangle"
       "transmission"
-      # "vlc" # Upstream Homebrew cask definition contains deprecated `command_wrapper`
+      "vlc"
       "whatsapp"
       "obsidian"
       "opencode-desktop"
