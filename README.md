@@ -14,7 +14,7 @@ A unified, modular Nix Flake repository managing both personal **macOS workstati
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
 | **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (Ghostty, Zed, OrbStack, Chrome, etc.), Zsh direnv hook |
-| **`silmeria`** | NixOS 26.05 | `x86_64-linux` | Home Server | Comin GitOps, OpenSSH, Tailscale VPN, Minecraft Server, Podman Containers |
+| **`silmeria`** | NixOS 26.05 | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Podman Containers |
 
 ---
 
@@ -23,12 +23,12 @@ A unified, modular Nix Flake repository managing both personal **macOS workstati
 The repository is organized into a clean **3-Tier Structure**:
 1. **`hosts/`**: Minimal, machine-specific entrypoints (hardware config, hostnames, module activations).
 2. **`modules/`**: Reusable configuration layers divided into `common/` (cross-platform), `darwin/` (macOS-only), and `nixos/` (Linux-only).
-3. **`flake.nix`**: Lightweight root orchestrator that declares inputs and maps hosts.
+3. **`flake.nix`**: Lightweight root orchestrator declaring inputs (`nixpkgs-26.05` & `nixpkgs-unstable`), mapping hosts, and passing `pkgs-unstable` via `specialArgs`.
 
 ```text
 nix-server/
-├── flake.nix                         # Minimal root entrypoint (inputs & host mappings)
-├── flake.lock                        # Pinned dependencies (26.05 stable)
+├── flake.nix                         # Minimal root entrypoint (inputs, specialArgs & host mappings)
+├── flake.lock                        # Pinned dependencies (26.05 stable & unstable overlay)
 ├── README.md                         # Repository documentation
 ├── hosts/
 │   ├── hrist/                        # macOS Workstation
@@ -50,10 +50,10 @@ nix-server/
     └── nixos/                        # NixOS-specific layer
         ├── default.nix               # Aggregates core and services
         ├── core/
-        │   ├── system.nix            # System locales, timezones, and core tools
+        │   ├── system.nix            # System locales, timezones, and core tools (antigravity-cli)
         │   └── users.nix             # Linux user accounts and groups
         └── services/
-            ├── comin.nix             # GitOps continuous deployment service
+            ├── comin.nix             # GitOps continuous deployment service (private repo token support)
             ├── minecraft.nix         # Declarative PaperMC Minecraft server
             ├── openssh.nix           # SSH daemon configuration & firewall rules
             ├── tailscale.nix         # Mesh VPN configuration
@@ -85,7 +85,7 @@ graph TD
 
 * **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`), Nix flakes enablement (`nix-command`, `flakes`), and `allowUnfree = true`.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Ghostty, Zed, Chrome, Obsidian, OrbStack, Discord, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
-* **NixOS (`modules/nixos/`)**: Systemd services (`comin`, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), and Realtek `r8168` hardware overrides.
+* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and Realtek `r8168` hardware overrides.
 
 ---
 
@@ -134,8 +134,9 @@ nix flake update
 
 The `silmeria` NixOS server runs **[Comin](https://github.com/nlewo/comin)** in the background:
 1. When changes are committed and pushed to the `main` branch on GitHub, Comin automatically polls the repository.
-2. Comin evaluates the new flake revision, builds the system closure, and switches the running system automatically.
-3. If an evaluation or build error occurs, Comin fails safely and keeps the previous generation running.
+2. Supports private GitHub repositories via `/etc/comin/access_token` (`my.services.comin.accessTokenPath`).
+3. Comin evaluates the new flake revision, builds the system closure, and switches the running system automatically.
+4. If an evaluation or build error occurs, Comin fails safely and keeps the previous generation running.
 
 ---
 
