@@ -24,6 +24,7 @@
       "whatsapp"
       "obsidian"
       "opencode-desktop"
+      "visual-studio-code"
     ];
   };
 
