@@ -13,7 +13,7 @@ A unified, modular Nix Flake repository managing both personal **macOS workstati
 
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
-| **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (Ghostty, Zed, OrbStack, Chrome, etc.), Zsh direnv hook |
+| **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (Ghostty, Zed, OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
 | **`silmeria`** | NixOS 26.05 | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Podman Containers |
 
 ---
@@ -84,7 +84,7 @@ graph TD
 ```
 
 * **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`), Nix flakes enablement (`nix-command`, `flakes`), and `allowUnfree = true`.
-* **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Ghostty, Zed, Chrome, Obsidian, OrbStack, Discord, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
+* **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Ghostty, Zed, Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
 * **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and Realtek `r8168` hardware overrides.
 
 ---

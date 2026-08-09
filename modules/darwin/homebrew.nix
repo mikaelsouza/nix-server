@@ -24,6 +24,7 @@
       "whatsapp"
       "obsidian"
       "opencode-desktop"
+      "tailscale-app"
       "visual-studio-code"
     ];
   };
