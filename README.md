@@ -40,7 +40,7 @@ nix-server/
     ├── common/                       # Shared cross-platform layer (Linux & macOS)
     │   ├── default.nix               # Aggregates common modules
     │   ├── nix.nix                   # Flakes, experimental-features, and allowUnfree
-    │   ├── packages.nix              # Shared CLI tools (git, neovim, nil, nixd, direnv)
+    │   ├── packages.nix              # Shared CLI tools (git, neovim, nil, nixd, direnv, uv)
     │   └── shell.nix                 # Zsh configuration and direnv interactive hook
     ├── darwin/                       # macOS-specific layer
     │   ├── default.nix               # Aggregates darwin modules
@@ -83,7 +83,7 @@ graph TD
     H2 --> MN
 ```
 
-* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`), Nix flakes enablement (`nix-command`, `flakes`), and `allowUnfree = true`.
+* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`), Nix flakes enablement (`nix-command`, `flakes`), and `allowUnfree = true`.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Ghostty, Zed, Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
 * **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and Realtek `r8168` hardware overrides.
 
