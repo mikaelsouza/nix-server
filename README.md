@@ -92,6 +92,13 @@ graph TD
 
 ---
 
+## 📚 Hardware & BIOS Guides
+
+* **[Dell OptiPlex 3000 BIOS Setup Guide](docs/bios-setup-guide.md)**: Step-by-step instructions for configuring C-States, ASPM, and power options.
+* **[Realtek RTL8168/8111 Power Management & Stability](docs/realtek-power-management.md)**: In-depth root-cause analysis of PCIe AER error loops and ASPM tuning on `silmeria`.
+
+---
+
 ## 🚀 Bootstrap: Fresh macOS Install (hrist)
 
 Set up a new Mac (`hrist`) from scratch:
