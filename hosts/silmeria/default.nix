@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, ... }:
 
 {
   imports = [
@@ -32,4 +32,7 @@
   # Networking
   networking.hostName = "silmeria";
   networking.networkmanager.enable = true;
+
+  # Stateful data release version (do not change unless read the manual)
+  system.stateVersion = "25.11";
 }

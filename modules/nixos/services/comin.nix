@@ -18,17 +18,19 @@ in
     services.comin = {
       enable = true;
       remotes = [
-        ({
-          name = "origin";
-          url = "https://github.com/mikaelsouza/nix-server.git";
-          branches.main.name = "main";
-        } // lib.optionalAttrs (cfg.accessTokenPath != null) {
-          auth.access_token_path = cfg.accessTokenPath;
-        })
+        (
+          {
+            name = "origin";
+            url = "https://github.com/mikaelsouza/nix-server.git";
+            branches.main.name = "main";
+            # Empty name makes comin skip the (nonexistent) testing branch
+            branches.testing.name = "";
+          }
+          // lib.optionalAttrs (cfg.accessTokenPath != null) {
+            auth.access_token_path = cfg.accessTokenPath;
+          }
+        )
       ];
     };
-
-    systemd.services.comin.environment.COMIN_CONFIG_HASH =
-      builtins.hashString "sha256" (builtins.toJSON config.services.comin);
   };
 }

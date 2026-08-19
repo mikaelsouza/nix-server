@@ -18,7 +18,6 @@
 
   outputs =
     inputs@{
-      self,
       nixpkgs,
       nixpkgs-unstable,
       nix-darwin,
@@ -39,13 +38,18 @@
           ./hosts/hrist
           nix-homebrew.darwinModules.nix-homebrew
         ];
+        specialArgs = {
+          pkgs-unstable = import nixpkgs-unstable {
+            system = "aarch64-darwin";
+            config.allowUnfree = true;
+          };
+        };
       };
 
       # Server Host Configuration
       nixosConfigurations."silmeria" = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = {
-          inherit inputs;
           pkgs-unstable = import nixpkgs-unstable {
             system = "x86_64-linux";
             config.allowUnfree = true;

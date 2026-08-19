@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -23,7 +22,6 @@ in
         "wheel"
         "podman"
       ];
-      packages = with pkgs; [ ];
     };
   };
 }

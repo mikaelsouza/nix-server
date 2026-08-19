@@ -15,6 +15,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable modern Nix CLI and Flakes (NixOS-only: nix-darwin manages its own daemon)
+    nix.settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+
     # Set time zone
     time.timeZone = "America/Sao_Paulo";
 
@@ -45,8 +51,5 @@ in
       powertop
       pkgs-unstable.antigravity-cli
     ];
-
-    # Stateful data release version (do not change unless read the manual)
-    system.stateVersion = "25.11";
   };
 }
