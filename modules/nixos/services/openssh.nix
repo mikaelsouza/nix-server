@@ -14,14 +14,11 @@ in
       enable = true;
       settings = {
         PasswordAuthentication = true;
-        PermitRootLogin = "yes";
+        PermitRootLogin = "no";
       };
     };
 
     # Firewall configuration
-    networking.firewall.allowedTCPPorts = [
-      22
-      2222
-    ];
+    networking.firewall.allowedTCPPorts = [ 22 ];
   };
 }
