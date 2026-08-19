@@ -88,7 +88,7 @@ graph TD
 
 * **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`, `nixpkgs-fmt`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
-* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and Realtek `r8168` hardware overrides.
+* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and in-tree `r8169` / PCIe ASPM power management overrides.
 
 ---
 

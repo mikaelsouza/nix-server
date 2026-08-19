@@ -1,5 +1,6 @@
-# opencode agent tooling
+# agent tooling
 .opencode/
+.agents/
 
 # macOS
 .DS_Store

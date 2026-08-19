@@ -23,11 +23,15 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Target hardware-specific customizations (Realtek network driver)
-  boot.extraModulePackages = [ config.boot.kernelPackages.r8168 ];
-  boot.blacklistedKernelModules = [ "r8169" ];
-  boot.kernelModules = [ "r8168" ];
-  boot.extraModprobeConfig = "options r8168 aspm=1 eee=1";
+  # Hardware power management & PCIe ASPM
+  # Force PCIe ASPM to override Dell BIOS FADT ACPI restrictions, allowing package C8/C10
+  boot.kernelParams = [
+    "pcie_aspm=force"
+    "pcie_aspm.policy=powersupersave"
+  ];
+
+  # Enable powertop auto-tuning on startup for runtime PM across PCI/USB/SATA devices
+  powerManagement.powertop.enable = true;
 
   # Networking
   networking.hostName = "silmeria";
