@@ -3,3 +3,8 @@
 
 # macOS
 .DS_Store
+
+# Build artifacts
+result
+result-*
+.direnv

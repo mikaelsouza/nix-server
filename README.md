@@ -5,7 +5,7 @@
 [![GitOps](https://img.shields.io/badge/GitOps-Comin-blueviolet)](https://github.com/nlewo/comin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A unified, modular Nix Flake repository managing both personal **macOS workstations** and **NixOS home servers**, pinned to the unified **Nixpkgs 26.05 Stable** channel.
+A unified, modular Nix Flake repository managing a personal **macOS workstation** and **NixOS home server**, pinned to the unified **Nixpkgs 26.05 Stable** channel.
 
 ---
 
@@ -13,8 +13,8 @@ A unified, modular Nix Flake repository managing both personal **macOS workstati
 
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
-| **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (Ghostty, Zed, OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
-| **`silmeria`** | NixOS 26.05 | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Podman Containers |
+| **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
+| **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Podman Containers |
 
 ---
 
@@ -27,37 +27,40 @@ The repository is organized into a clean **3-Tier Structure**:
 
 ```text
 nix-server/
-├── flake.nix                         # Minimal root entrypoint (inputs, specialArgs & host mappings)
-├── flake.lock                        # Pinned dependencies (26.05 stable & unstable overlay)
-├── README.md                         # Repository documentation
+├── .gitignore                         # Local artifacts & build outputs (result, .direnv)
+├── LICENSE                            # MIT license
+├── README.md                          # Repository documentation
+├── guidelines.md                      # Contribution guidelines & validation workflow
+├── flake.nix                          # Minimal root entrypoint (inputs, specialArgs & host mappings)
+├── flake.lock                         # Pinned dependencies (26.05 stable & nixpkgs-unstable inputs)
 ├── hosts/
-│   ├── hrist/                        # macOS Workstation
-│   │   └── default.nix               # Imports modules/common & modules/darwin
-│   └── silmeria/                     # NixOS Server
-│       ├── default.nix               # Imports modules/common & modules/nixos
-│       └── hardware-configuration.nix# Server hardware and partition definitions
+│   ├── hrist/                         # macOS Workstation
+│   │   └── default.nix                # Imports modules/common & modules/darwin
+│   └── silmeria/                      # NixOS Server
+│       ├── default.nix                # Imports modules/common & modules/nixos
+│       └── hardware-configuration.nix # Server hardware and partition definitions
 └── modules/
-    ├── common/                       # Shared cross-platform layer (Linux & macOS)
-    │   ├── default.nix               # Aggregates common modules
-    │   ├── nix.nix                   # Flakes, experimental-features, and allowUnfree
-    │   ├── packages.nix              # Shared CLI tools (git, neovim, nil, nixd, direnv, uv)
-    │   └── shell.nix                 # Zsh configuration and direnv interactive hook
-    ├── darwin/                       # macOS-specific layer
-    │   ├── default.nix               # Aggregates darwin modules
-    │   ├── homebrew.nix              # Homebrew taps, brews, and GUI casks
-    │   ├── system.nix                # macOS daemon settings (nix.enable = false)
-    │   └── users.nix                 # macOS primaryUser definition
-    └── nixos/                        # NixOS-specific layer
-        ├── default.nix               # Aggregates core and services
+    ├── common/                        # Shared cross-platform layer (Linux & macOS)
+    │   ├── default.nix                # Aggregates common modules
+    │   ├── nix.nix                    # allowUnfree (flakes live in modules/nixos/core/system.nix)
+    │   ├── packages.nix               # Shared CLI tools (git, neovim, nil, nixd, direnv, uv, nixpkgs-fmt)
+    │   └── shell.nix                  # Zsh configuration and direnv interactive hook
+    ├── darwin/                        # macOS-specific layer
+    │   ├── default.nix                # Aggregates darwin modules
+    │   ├── homebrew.nix               # Homebrew taps, brews, and GUI casks
+    │   ├── system.nix                 # macOS daemon settings (nix.enable = false)
+    │   └── users.nix                  # macOS primaryUser definition
+    └── nixos/                         # NixOS-specific layer
+        ├── default.nix                # Aggregates core and services
         ├── core/
-        │   ├── system.nix            # System locales, timezones, and core tools (antigravity-cli)
-        │   └── users.nix             # Linux user accounts and groups
+        │   ├── system.nix             # System locales, timezones, and core tools (antigravity-cli)
+        │   └── users.nix              # Linux user accounts and groups
         └── services/
-            ├── comin.nix             # GitOps continuous deployment service (private repo token support)
-            ├── minecraft.nix         # Declarative PaperMC Minecraft server
-            ├── openssh.nix           # SSH daemon configuration & firewall rules
-            ├── tailscale.nix         # Mesh VPN configuration
-            └── virtualization.nix    # Podman container runtime & Distrobox
+            ├── comin.nix              # GitOps continuous deployment service (private repo token support)
+            ├── minecraft.nix          # Declarative PaperMC Minecraft server
+            ├── openssh.nix            # SSH daemon configuration & firewall rules
+            ├── tailscale.nix          # Mesh VPN configuration
+            └── virtualization.nix     # Podman container runtime & Distrobox
 ```
 
 ---
@@ -72,7 +75,7 @@ graph TD
     end
 
     subgraph Modules
-        MC[modules/common<br/>• Git & Neovim<br/>• Direnv & Zsh Hook<br/>• Nix Flakes Settings]
+        MC[modules/common<br/>• Git & Neovim<br/>• Direnv & Zsh Hook<br/>• allowUnfree = true]
         MD[modules/darwin<br/>• Homebrew & Casks<br/>• nix-homebrew<br/>• primaryUser]
         MN[modules/nixos<br/>• Systemd Services<br/>• Linux Users & Groups<br/>• Bootloader & Kernel]
     end
@@ -83,8 +86,8 @@ graph TD
     H2 --> MN
 ```
 
-* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`), Nix flakes enablement (`nix-command`, `flakes`), and `allowUnfree = true`.
-* **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Ghostty, Zed, Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
+* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`, `nixpkgs-fmt`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
+* **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
 * **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and Realtek `r8168` hardware overrides.
 
 ---
@@ -119,14 +122,14 @@ nix build .#darwinConfigurations.hrist.system
 ./result/sw/bin/darwin-rebuild switch --flake .#hrist
 ```
 
-This evaluates the flake, builds the system closure, and switches. Homebrew (taps, brews, casks) and all managed apps are installed automatically during activation.
+This evaluates the flake, builds the system closure, and switches. Homebrew and all declared casks are installed automatically during activation.
 
 ### 4. Verify
 
 ```bash
 darwin-rebuild --version          # should now resolve on PATH
 which zsh && direnv --version     # common modules applied
-ls /Applications | grep -i tailscale # casks installed
+[ -d "/Applications/Tailscale.app" ] && echo "Casks installed" # tailscale-app cask bundle present
 ```
 
 Once bootstrapped, subsequent updates only need the normal switch command below.
@@ -166,7 +169,7 @@ nix fmt
 ```
 
 ### 4. Updating Flake Dependencies
-To update flake inputs (Nixpkgs, nix-darwin, Comin) to their latest channel revisions:
+To update flake inputs (Nixpkgs, nixpkgs-unstable, nix-darwin, nix-homebrew, Comin) to their latest channel revisions:
 
 ```bash
 nix flake update
@@ -188,8 +191,8 @@ The `silmeria` NixOS server runs **[Comin](https://github.com/nlewo/comin)** in 
 
 To add a new machine to this repository:
 1. Create a directory under `hosts/<hostname>/`.
-2. Add a `default.nix` importing `../../modules/common` and either `../../modules/darwin` or `../../modules/nixos`.
-3. Add the host entry to `flake.nix` under `darwinConfigurations` or `nixosConfigurations`.
+2. Add a `default.nix` importing `../../modules/common` and either `../../modules/darwin` or `../../modules/nixos`, setting `networking.hostName` and the correct `system.stateVersion`.
+3. Add the host entry to `flake.nix` under `darwinConfigurations` or `nixosConfigurations` (passing `pkgs-unstable` via `specialArgs` if the host needs unstable packages). A new darwin host must also be wired to the `nix-homebrew.darwinModules.nix-homebrew` module, and a new NixOS host needs its own `hardware-configuration.nix` imported.
 4. Run dry-run validation:
    ```bash
    nix build .#<configurations>.<hostname>... --dry-run

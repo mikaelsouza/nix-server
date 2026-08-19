@@ -29,7 +29,7 @@ hosts/
 modules/
   common/                          # cross-platform layer (used by every host)
     default.nix                    # aggregates the module files below via `imports`
-    nix.nix                        # nixpkgs.config.allowUnfree, experimental-features
+    nix.nix                        # nixpkgs.config.allowUnfree (flakes live in nixos/core/system.nix)
     packages.nix                   # shared CLI tools (git, neovim, nil, nixd, direnv, ...)
     shell.nix                      # zsh + direnv hook
   darwin/                          # macOS-only layer
@@ -40,10 +40,10 @@ modules/
   nixos/                           # Linux-only layer
     default.nix                    # aggregates core/ + services/
     core/
-      system.nix                   # timezone, locale, keymap, base packages, stateVersion
+      system.nix                   # flakes (experimental-features), timezone, locale, keymap, base packages
       users.nix                    # user accounts and groups
     services/
-      comin.nix                    # GitOps deployment service + COMIN_CONFIG_HASH restart
+      comin.nix                    # GitOps deployment service (comin self-restarts after deploying changes)
       minecraft.nix                # PaperMC server
       openssh.nix                  # SSH daemon + firewall
       tailscale.nix                # mesh VPN
@@ -90,7 +90,7 @@ in
 - Expose an `enable` option via `lib.mkEnableOption` and guard all `config` with `lib.mkIf cfg.enable`.
 - Use `options.my.core.*` for core/system concerns and `options.my.services.*` for deployable services (see `core/system.nix`, `services/comin.nix`).
 - Enable the feature from the host with `my.services.<name>.enable = true;` — never import it and assume it activates.
-- When a module needs a package that only exists in unstable, take `pkgs-unstable` as a function argument (it is passed via `specialArgs` for `silmeria`) and reference `pkgs-unstable.<pkg>`. See `core/system.nix`.
+- When a module needs a package that only exists in unstable, take `pkgs-unstable` as a function argument (it is passed via `specialArgs` for every host; see `flake.nix`) and reference `pkgs-unstable.<pkg>`. See `core/system.nix`.
 - Use `lib.mkDefault` for sane defaults so hosts can override; use plain assignment when the value is the deliberate default.
 
 ### Adding a new NixOS service
@@ -123,7 +123,7 @@ in
 - **Never commit secrets.** Tokens/keys are read from host paths (`comin.nix` `accessTokenPath`, `tailscale.nix` `authKeyFile`). If you see a real token, key, or credential being added — stop and route it to a host-local path instead.
 - **`flake.lock` must be committed.** Pushing a `flake.nix` change without the lock update (or vice versa) breaks reproducibility and Comin.
 - **`stateVersion` is a one-way switch.** Only touch it when intentionally migrating; changing it backwards risks data loss and is a `feat`/breaking change.
-- **nix-homebrew is finicky.** Cask history in this repo (musescore/vlc) shows Homebrew's API `command_wrapper` errors and the `HOMEBREW_NO_INSTALL_FROM_API=1` workaround. When touching casks, validate with a dry-run and prefer pinned/stable workarounds over deleting entries.
+- **nix-homebrew is finicky.** Cask history in this repo (vlc; musescore was removed) shows Homebrew's API `command_wrapper` errors and the `HOMEBREW_NO_INSTALL_FROM_API=1` workaround. When touching casks, validate with a dry-run and prefer pinned/stable workarounds over deleting entries.
 - **`.opencode/` is local agent tooling and is not tracked** — don't reference it in commits or docs.
 - Do not commit `result`, `result-*`, `.direnv`, or other build artifacts.
 
@@ -135,7 +135,7 @@ Run these locally and confirm **both** hosts evaluate before committing/pushing:
 
 ```bash
 # Format check (nixfmt, RFC 166)
-nix fmt -- --check
+nix fmt -- --check .
 
 # macOS workstation (hrist)
 nix build .#darwinConfigurations.hrist.system --dry-run
@@ -146,6 +146,8 @@ nix build .#nixosConfigurations.silmeria.config.system.build.toplevel --dry-run
 # Structural checks
 nix flake check
 ```
+
+> `nix flake check` run on macOS only validates the `aarch64-darwin` outputs (i.e. `hrist`), so `silmeria` (`x86_64-linux`) must still be validated with the explicit dry-run build: `nix build .#nixosConfigurations.silmeria.config.system.build.toplevel --dry-run`.
 
 If you changed flake inputs:
 
@@ -224,7 +226,7 @@ refactor(layout): modularize repository by machine and platform layer
 - Work on a feature branch: `feat/<area>-<summary>`, `fix/<area>-<summary>`, `docs/...`.
 - Open a PR to `main`. Historical PR titles mirror the squash-commit message (`feat(comin): add COMIN_CONFIG_HASH ... (#13)`).
 - Before opening/merging: run section 6 validation, run `nix fmt`, and keep the PR diff small and reviewable.
-- Merging to `main` deploys to `silmeria` automatically. State clearly in the PR/commit when a deploy/restart is expected (Comin's `COMIN_CONFIG_HASH` triggers a self-restart on config change).
+- Merging to `main` deploys to `silmeria` automatically. State clearly in the PR/commit when a deploy/restart is expected. Comin self-restarts after deploying a change that alters its own unit (its module sets `restartIfChanged = false`, so comin restarts itself; it is *not* restarted by `nixos-rebuild switch`). After a manual `nixos-rebuild switch` that changes `comin.nix`, run `systemctl restart comin` to pick up the new config.
 
 ---
 
