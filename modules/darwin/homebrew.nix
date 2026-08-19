@@ -8,11 +8,8 @@
     taps = [ ];
     brews = [ ];
     casks = [
-      "ghostty"
-      "musescore"
       "google-chrome"
       "google-drive"
-      "zed"
       "antigravity"
       "antigravity-ide"
       "telegram"
