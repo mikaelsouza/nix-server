@@ -1,5 +1,5 @@
 { ... }:
 
 {
-  system.primaryUser = "mikael";
+  system.primaryUser = "mikaelsouza";
 }
