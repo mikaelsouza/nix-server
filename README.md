@@ -89,6 +89,50 @@ graph TD
 
 ---
 
+## 🚀 Bootstrap: Fresh macOS Install (hrist)
+
+Set up a new Mac (`hrist`) from scratch:
+
+### 1. Install Nix (Determinate Installer)
+
+This repo expects the **Determinate Nix installer** daemon — the darwin config disables nix-darwin's own Nix service (`nix.enable = false`) to avoid clashing with it:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+Then restart your shell so `nix` is on `PATH`.
+
+### 2. Clone the Repository
+
+```bash
+git clone git@github.com:mikaelsouza/nix-server.git
+cd nix-server
+```
+
+### 3. Build & Activate the Configuration
+
+`darwin-rebuild` isn't on `PATH` yet, so build the system and invoke `darwin-rebuild` from the result:
+
+```bash
+nix build .#darwinConfigurations.hrist.system
+./result/sw/bin/darwin-rebuild switch --flake .#hrist
+```
+
+This evaluates the flake, builds the system closure, and switches. Homebrew (taps, brews, casks) and all managed apps are installed automatically during activation.
+
+### 4. Verify
+
+```bash
+darwin-rebuild --version          # should now resolve on PATH
+which zsh && direnv --version     # common modules applied
+ls /Applications | grep -i tailscale # casks installed
+```
+
+Once bootstrapped, subsequent updates only need the normal switch command below.
+
+---
+
 ## 🛠️ Usage & Operations
 
 ### 1. Dry-Run Validation (Build without switching)
