@@ -13,7 +13,7 @@ This README is the **single source of truth** for building, operating, modifying
 
 - **`main` is live production.** `silmeria` runs [Comin](https://github.com/nlewo/comin), which polls this repository and automatically builds + switches its system on every push to `main`. A broken evaluation on `main` can take down a working server (Comin fails safe and keeps the previous generation, but still). **Validate before you push, never push unverified work.**
 - **Two platforms are managed from one flake:** `hrist` (`aarch64-darwin`, macOS) and `silmeria` (`x86_64-linux`, NixOS). A change that compiles for one host may break the other. Always validate **both** hosts.
-- **Channel policy: exactly 5 direct inputs** — `nixpkgs`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. Everything is pinned to `nixpkgs-26.05` (stable). `nixpkgs-unstable` is a separate input consumed only via `specialArgs` as `pkgs-unstable` — it is **not** applied as an overlay and must not leak into the stable package set.
+- **Channel policy: exactly 5 direct inputs** — `nixpkgs`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. Everything is pinned to `nixpkgs-26.05-darwin` (stable). `nixpkgs-unstable` is a separate input consumed only via `specialArgs` as `pkgs-unstable` — it is **not** applied as an overlay and must not leak into the stable package set.
 - **No secrets are stored in this repository.** Secrets live in host-local paths (e.g. `/etc/comin/access_token`, `/var/lib/tailscale/authkey`). Never commit tokens, keys, or credentials.
 - **`scripts/verify-docs.sh`** machine-checks this file against the repo (see §7). Keep the tree in §2 and the host table in §1 in sync when layout or hosts change.
 
@@ -121,9 +121,9 @@ graph TD
     end
 
     subgraph Modules
-        MC[modules/common<br/>Git & Neovim<br/>Direnv & Zsh Hook<br/>allowUnfree = true]
-        MD[modules/darwin<br/>Homebrew & Casks<br/>nix-homebrew<br/>primaryUser]
-        MN[modules/nixos<br/>Systemd Services<br/>Linux Users & Groups<br/>Core System Settings]
+        MC[modules/common<br/>• Git & Neovim<br/>• Direnv & Zsh Hook<br/>• allowUnfree = true]
+        MD[modules/darwin<br/>• Homebrew & Casks<br/>• nix-homebrew<br/>• primaryUser]
+        MN[modules/nixos<br/>• Systemd Services<br/>• Linux Users & Groups<br/>• Core System Settings]
     end
 
     H1 --> MC
@@ -437,6 +437,8 @@ Before you finish:
 
 - Conventional Commits: <https://www.conventionalcommits.org/en/v1.0.0/>
 - NixOS & Flakes Book — Modularizing configs: <https://nixos-and-flakes.thiscute.world/nixos-with-flakes/modularize-the-configuration>
+- Nixpkgs (26.05 stable branch): <https://github.com/NixOS/nixpkgs/tree/nixpkgs-26.05-darwin>
+- nix-darwin (26.05 branch): <https://github.com/nix-darwin/nix-darwin/tree/nix-darwin-26.05>
 - numtide/blueprint — standard Nix folder layout: <https://github.com/numtide/blueprint>
 - Misterio77 nix-starter-configs — flake + module organization: <https://github.com/Misterio77/nix-starter-configs>
 - Comin (GitOps): <https://github.com/nlewo/comin>
