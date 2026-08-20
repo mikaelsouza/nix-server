@@ -40,6 +40,9 @@ in
         # Host networking is preferred by the image for reliable device adoption.
         environment = {
           TZ = "America/Sao_Paulo";
+          # Constrain mongod's WiredTiger cache: it sizes off host RAM (/proc/meminfo),
+          # not the container cgroup limit, which can OOM-kill a --memory=4g container.
+          MONGOD_EXTRA_ARGS = "--wiredTigerCacheSizeGB 1";
         };
         volumes = [
           "/home/mikaels/omada/data:/opt/tplink/EAPController/data"
@@ -56,17 +59,14 @@ in
       };
     };
 
-    # 8088/8043: management UI (HTTP/HTTPS), 8843/8844: captive portal,
-    # 27001-27002: adoption + manager, 29811-29817: device management,
-    # 27001/29810/19810 UDP: discovery/broadcast
+    # 8088/8043: management UI (HTTP/HTTPS), 8843: captive portal HTTPS,
+    # 29811-29817: device management, 27001/29810/19810 UDP: discovery/broadcast.
+    # (TCP 8844/27001/27002 are not in TP-Link's Omada port list for 6.x.)
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = [
         8088
         8043
         8843
-        8844
-        27001
-        27002
         29811
         29812
         29813
