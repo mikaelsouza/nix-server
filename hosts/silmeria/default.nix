@@ -16,6 +16,9 @@
   my.services.comin.enable = true;
   my.services.openssh.enable = true;
   my.services.minecraft.enable = true;
+  my.services.omada.enable = true;
+  # Open Omada ports so LAN devices can adopt; tailnet access works regardless
+  my.services.omada.openFirewall = true;
   my.services.tailscale.enable = true;
   my.services.virtualization.enable = true;
 

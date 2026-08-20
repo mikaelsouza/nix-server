@@ -45,6 +45,7 @@ modules/
     services/
       comin.nix                    # GitOps deployment service (comin self-restarts after deploying changes)
       minecraft.nix                # PaperMC server
+      omada.nix                    # TP-Link Omada Controller (Podman container)
       openssh.nix                  # SSH daemon + firewall
       tailscale.nix                # mesh VPN
       virtualization.nix           # Podman + Distrobox
@@ -189,7 +190,7 @@ The scope identifies **what area** the change touches. Use the host name for hos
 
 - `hrist` — macOS host (casks, nix-homebrew, darwin modules)
 - `silmeria` — NixOS host (services, hardware)
-- `comin`, `minecraft`, `openssh`, `tailscale`, `virtualization` — individual services
+- `comin`, `minecraft`, `omada`, `openssh`, `tailscale`, `virtualization` — individual services
 - `nixos`, `darwin`, `common` — the module layer touched
 - `layout` — repository structure
 - `flake` — inputs/outputs in `flake.nix`
