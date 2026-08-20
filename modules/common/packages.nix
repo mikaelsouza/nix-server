@@ -6,7 +6,6 @@
     pkgs.neovim
     pkgs.nil
     pkgs.nixd
-    pkgs.nixpkgs-fmt
     pkgs.direnv
     pkgs.uv
   ];
