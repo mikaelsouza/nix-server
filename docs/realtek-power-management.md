@@ -21,7 +21,7 @@ The Dell OptiPlex 3000 BIOS ACPI FADT table includes the `ACPI_FADT_NO_ASPM` fla
 kernel: ACPI FADT declares the system doesn't support PCIe ASPM, so disable it
 kernel: acpi PNP0A08:00: FADT indicates ASPM is unsupported, using BIOS configuration
 ```
-By default, the Linux kernel disables PCIe Active State Power Management across all PCIe links. On Intel Alder Lake SoC platforms, **Package C-states deeper than PC2/PC3 (specifically PC8 and PC10) require all PCIe root ports and endpoints to enter ASPM L1/L1 substates** and runtime power management.
+By default, the Linux kernel disables PCIe Active State Power Management across all PCIe links. On Intel Alder Lake SoC platforms, **Package C-states PC8/PC10 (and any state deeper than PC8) require all PCIe root ports and endpoints to enter ASPM L1/L1 substates** and runtime power management.
 
 ### 2.2 Why the Out-of-Tree `r8168` Driver Failed
 In previous configurations, `hosts/silmeria/default.nix` attempted:
@@ -93,11 +93,18 @@ In `hosts/silmeria/default.nix`:
 After deploying and rebooting into the new generation:
 
 ### 1. Verify C-State Residency
-Run `turbostat` or `powertop` to verify package and core C-states:
+`powertop` is already installed on `silmeria` (`environment.systemPackages` in `modules/nixos/core/system.nix`), so no extra package is needed. Run it non-interactively and dump a report:
 ```bash
-nix-shell -p linuxPackages.turbostat --run "turbostat --quiet --interval 1 --num_iterations 3"
+sudo powertop --csv=/tmp/powertop.csv --time=10
+grep -E "C8|C10" /tmp/powertop.csv
 ```
-*Expected:* CPU cores and package achieve residency in `C8%` and `C10%` (>80% at idle).
+*Expected:* The processor idle-state report shows core and package C8/C10 residency >80% at idle. (Interactively, `sudo powertop` → press `Tab` to the "Idle stats" tab; `q` to quit.)
+
+*Alternative* (turbostat is not in the system packages and needs MSR access):
+```bash
+sudo modprobe msr
+sudo nix run nixpkgs#linuxPackages.turbostat -- --quiet --interval 1 --num_iterations 3
+```
 
 ### 2. Verify Zero PCIe AER Errors
 Check kernel logs for any AER recovery errors:
@@ -111,4 +118,11 @@ Check PCIe link power state for the Realtek NIC (`0000:01:00.0`):
 ```bash
 cat /sys/bus/pci/devices/0000:01:00.0/power/control
 # Output: auto
+```
+
+### 4. Verify the `r8169` Driver Is Bound
+Confirm the in-tree driver (not the out-of-tree `r8168`) owns the NIC (`pciutils` is not in the system packages, so use `nix run`):
+```bash
+sudo nix run nixpkgs#pciutils -- lspci -k -d 10ec:8168 | grep -E "Kernel driver in use"
+# Expected: "Kernel driver in use: r8169"
 ```

@@ -1,7 +1,7 @@
 # ❄️ nix-server
 
 [![Nixpkgs](https://img.shields.io/badge/Nixpkgs-26.05%20Stable-5277C3?logo=nixos&logoColor=white)](https://github.com/NixOS/nixpkgs/tree/nixpkgs-26.05-darwin)
-[![nix-darwin](https://img.shields.io/badge/nix--darwin-26.05-black?logo=apple&logoColor=white)](https://github.com/nix-darwin/nix-darwin)
+[![nix-darwin](https://img.shields.io/badge/nix--darwin-26.05-black?logo=apple&logoColor=white)](https://github.com/nix-darwin/nix-darwin/tree/nix-darwin-26.05)
 [![GitOps](https://img.shields.io/badge/GitOps-Comin-blueviolet)](https://github.com/nlewo/comin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -13,7 +13,7 @@ A unified, modular Nix Flake repository managing a personal **macOS workstation*
 
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
-| **`hrist`** | macOS (Darwin 26.05) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
+| **`hrist`** | macOS (nix-darwin 26.05, stateVersion 5) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
 | **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Omada Controller, Podman Containers |
 
 ---
@@ -27,23 +27,26 @@ The repository is organized into a clean **3-Tier Structure**:
 
 ```text
 nix-server/
-├── .gitignore                         # Local artifacts & build outputs (result, .direnv)
+├── .gitignore                         # Local artifacts & build outputs (result, result-*, .direnv) & tooling (.opencode, .agents)
 ├── LICENSE                            # MIT license
 ├── README.md                          # Repository documentation
 ├── guidelines.md                      # Contribution guidelines & validation workflow
 ├── flake.nix                          # Minimal root entrypoint (inputs, specialArgs & host mappings)
 ├── flake.lock                         # Pinned dependencies (26.05 stable & nixpkgs-unstable inputs)
+├── docs/                              # Hardware & BIOS guides
+│   ├── bios-setup-guide.md            # Dell OptiPlex 3000 BIOS settings (C-States, ASPM)
+│   └── realtek-power-management.md    # r8169 / PCIe ASPM root-cause & tuning
 ├── hosts/
 │   ├── hrist/                         # macOS Workstation
 │   │   └── default.nix                # Imports modules/common & modules/darwin
 │   └── silmeria/                      # NixOS Server
-│       ├── default.nix                # Imports modules/common & modules/nixos
-│       └── hardware-configuration.nix # Server hardware and partition definitions
+│       ├── default.nix                # Imports modules/common & modules/nixos (+ hardware-configuration.nix)
+│       └── hardware-configuration.nix # Server hardware & partitions (generated — do not edit)
 └── modules/
     ├── common/                        # Shared cross-platform layer (Linux & macOS)
     │   ├── default.nix                # Aggregates common modules
     │   ├── nix.nix                    # allowUnfree (flakes live in modules/nixos/core/system.nix)
-    │   ├── packages.nix               # Shared CLI tools (git, neovim, nil, nixd, direnv, uv, nixpkgs-fmt)
+    │   ├── packages.nix               # Shared CLI tools (git, neovim, nil, nixd, direnv, uv)
     │   └── shell.nix                  # Zsh configuration and direnv interactive hook
     ├── darwin/                        # macOS-specific layer
     │   ├── default.nix                # Aggregates darwin modules
@@ -56,7 +59,7 @@ nix-server/
         │   ├── system.nix             # System locales, timezones, and core tools (antigravity-cli)
         │   └── users.nix              # Linux user accounts and groups
         └── services/
-            ├── comin.nix              # GitOps continuous deployment service (private repo token support)
+            ├── comin.nix              # GitOps deployment service (private repo token support; wired via comin.nixosModules.comin)
             ├── minecraft.nix          # Declarative PaperMC Minecraft server
             ├── omada.nix              # TP-Link Omada Controller (Podman container)
             ├── openssh.nix            # SSH daemon configuration & firewall rules
@@ -78,7 +81,7 @@ graph TD
     subgraph Modules
         MC[modules/common<br/>• Git & Neovim<br/>• Direnv & Zsh Hook<br/>• allowUnfree = true]
         MD[modules/darwin<br/>• Homebrew & Casks<br/>• nix-homebrew<br/>• primaryUser]
-        MN[modules/nixos<br/>• Systemd Services<br/>• Linux Users & Groups<br/>• Bootloader & Kernel]
+        MN[modules/nixos<br/>• Systemd Services<br/>• Linux Users & Groups<br/>• Core System Settings]
     end
 
     H1 --> MC
@@ -87,7 +90,7 @@ graph TD
     H2 --> MN
 ```
 
-* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`, `nixpkgs-fmt`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
+* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
 * **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `omada`, `tailscale`, `virtualization`), Linux accounts (`mikaels` in `wheel`, `networkmanager`, `podman`), `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and in-tree `r8169` / PCIe ASPM power management overrides.
 
@@ -96,7 +99,7 @@ graph TD
 ## 📚 Hardware & BIOS Guides
 
 * **[Dell OptiPlex 3000 BIOS Setup Guide](docs/bios-setup-guide.md)**: Step-by-step instructions for configuring C-States, ASPM, and power options.
-* **[Realtek RTL8168/8111 Power Management & Stability](docs/realtek-power-management.md)**: In-depth root-cause analysis of PCIe AER error loops and ASPM tuning on `silmeria`.
+* **[Realtek RTL8168/8111 Network Stability & C-State Power Management](docs/realtek-power-management.md)**: In-depth root-cause analysis of PCIe AER error loops and ASPM tuning on `silmeria`.
 
 
 ---

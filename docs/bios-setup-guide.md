@@ -24,7 +24,7 @@ Navigate the left-hand menu tree and configure the following options:
 │   └── Intel Turbo Boost         ──> [✓] Enabled
 │
 ├── Power / Power Management
-│   ├── ASPM                      ──> [✓] Auto (or Enabled)
+│   ├── ASPM                      ──> [✓] Auto (or Enabled)  (see §5 for why the kernel override is still required)
 │   ├── Block Sleep               ──> [ ] Disabled
 │   ├── Deep Sleep Control        ──> [ ] Disabled
 │   ├── USB Wake Support          ──> [✓] Enabled
