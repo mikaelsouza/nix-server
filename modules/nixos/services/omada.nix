@@ -23,6 +23,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    systemd.tmpfiles.rules = [
+      "d /home/mikaels/omada 0755 mikaels users -"
+      "d /home/mikaels/omada/data 0755 mikaels users -"
+      "d /home/mikaels/omada/logs 0755 mikaels users -"
+    ];
+
     # Requires `virtualisation.podman.enable = true` (enabled by the
     # `my.services.virtualization` module). nixpkgs ships no Omada package, so
     # the controller runs from the community mbentley/omada-controller image.
@@ -36,8 +42,8 @@ in
           TZ = "America/Sao_Paulo";
         };
         volumes = [
-          "/var/lib/omada/data:/opt/tplink/EAPController/data"
-          "/var/lib/omada/logs:/opt/tplink/EAPController/logs"
+          "/home/mikaels/omada/data:/opt/tplink/EAPController/data"
+          "/home/mikaels/omada/logs:/opt/tplink/EAPController/logs"
         ];
         extraOptions = [
           "--network=host"
