@@ -30,7 +30,6 @@
   # Zhaofeng Li's nix-homebrew configuration
   nix-homebrew = {
     enable = true;
-    enableRosetta = true;
     user = "mikaelsouza";
     autoMigrate = true;
   };
