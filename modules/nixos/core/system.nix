@@ -49,6 +49,7 @@ in
     environment.systemPackages = with pkgs; [
       vim
       powertop
+      python3
       pkgs-unstable.antigravity-cli
       pkgs-unstable.claude-code
     ];
