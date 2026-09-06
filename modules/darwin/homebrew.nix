@@ -12,6 +12,7 @@
       "google-drive"
       "antigravity"
       "antigravity-ide"
+      "claude"
       "telegram"
       "discord"
       "orbstack"

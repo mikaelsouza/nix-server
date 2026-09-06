@@ -50,6 +50,7 @@ in
       vim
       powertop
       pkgs-unstable.antigravity-cli
+      pkgs-unstable.claude-code
     ];
   };
 }

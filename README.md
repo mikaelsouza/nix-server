@@ -56,7 +56,7 @@ This README is the **single source of truth** for building, operating, modifying
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
 | **`hrist`** | macOS (nix-darwin 26.05, stateVersion 5) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
-| **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Minecraft Server, Omada Controller, Podman Containers |
+| **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Claude Code, Minecraft Server, Omada Controller, Podman Containers |
 
 ---
 
@@ -100,7 +100,7 @@ nix-server/
     └── nixos/                         # NixOS-specific layer
         ├── default.nix                # Aggregates core and services
         ├── core/
-        │   ├── system.nix             # System locales, timezones, flakes, and core tools (antigravity-cli)
+        │   ├── system.nix             # System locales, timezones, flakes, and core tools (antigravity-cli, claude-code)
         │   └── users.nix              # Linux user account (mikaels) and extra groups
         └── services/
             ├── comin.nix              # GitOps deployment service (private repo token support; wired via comin.nixosModules.comin)
@@ -134,7 +134,7 @@ graph TD
 
 * **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration (`enableRosetta = true`), and Determinate daemon compatibility (`nix.enable = false`).
-* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `omada`, `tailscale`, `virtualization`), Linux account `mikaels` in `wheel`, `networkmanager`, `podman`, `antigravity-cli` (sourced explicitly via `pkgs-unstable` `specialArgs`), and in-tree `r8169` / PCIe ASPM power management overrides.
+* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `omada`, `tailscale`, `virtualization`), Linux account `mikaels` in `wheel`, `networkmanager`, `podman`, `antigravity-cli` and `claude-code` (sourced explicitly via `pkgs-unstable` `specialArgs`), and in-tree `r8169` / PCIe ASPM power management overrides.
 
 ### Rules of Placement
 
