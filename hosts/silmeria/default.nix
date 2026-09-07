@@ -14,9 +14,7 @@
   my.core.system.enable = true;
   my.core.users.enable = true;
   my.services.autoUpdate.enable = true;
-  # Reuse the account SSH key already present on this host rather than
-  # provisioning a repo-scoped deploy key. Root reads it directly.
-  my.services.autoUpdate.deployKeyFile = "/home/mikaels/.ssh/id_ed25519";
+  # deployKeyFile is left at the module default on purpose: the root-only, repo-scoped deploy key.
   my.services.comin.enable = true;
   my.services.openssh.enable = true;
   my.services.minecraft.enable = true;
