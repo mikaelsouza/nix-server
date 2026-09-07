@@ -30,7 +30,12 @@ in
       inherit (cfg) authKeyFile;
     };
 
-    # Trust Tailscale interface so friends can connect to opened ports (like 25565)
-    networking.firewall.trustedInterfaces = [ "tailscale0" ];
+    # The tailnet is NOT blanket-trusted: `tailscale0` is deliberately absent
+    # from `networking.firewall.trustedInterfaces`, so the firewall applies to
+    # tailnet peers like any other network. Each service opens only the port it
+    # needs on `tailscale0` (see `minecraft.nix` for 25565/tcp); SSH is already
+    # covered by the global `allowedTCPPorts = [ 22 ]` in `openssh.nix`.
+    # Tailscale's own UDP underlay (port 41641) rides the physical interface,
+    # not `tailscale0`, so it is unaffected by these rules.
   };
 }
