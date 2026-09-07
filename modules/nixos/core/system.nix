@@ -39,11 +39,17 @@ in
       LC_TIME = "en_US.UTF-8";
     };
 
-    # Configure keymap in X11
-    services.xserver.xkb = {
-      layout = "us";
-      variant = "";
+    # Console keymap (this host is headless; there is no X11 server to configure)
+    console.keyMap = "us";
+
+    # Collect garbage and deduplicate the store: comin builds a new system
+    # closure on every push to main, and nothing else ever reclaims it.
+    nix.gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
     };
+    nix.optimise.automatic = true;
 
     # List packages installed in system profile
     environment.systemPackages = with pkgs; [

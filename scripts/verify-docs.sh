@@ -64,13 +64,13 @@ echo "OK: README §2 tree matches all $count .nix files under hosts/ and modules
 # --- (b) Direct flake inputs ---------------------------------------------
 # README must state the count phrase, name every input flake.nix declares,
 # and flake.nix must declare exactly the inputs README names.
-grep -q '5 direct inputs' README.md \
-  || { echo "FAIL: README must state '5 direct inputs' (see §0)." >&2; exit 1; }
+grep -q '6 direct inputs' README.md \
+  || { echo "FAIL: README must state '6 direct inputs' (see §0)." >&2; exit 1; }
 flake_inputs="$(sed -n '/^  inputs = {/,/^  };$/p' flake.nix \
   | grep -oE '^    [a-zA-Z0-9_-]+' | tr -d ' ' | sort -u || true)"
-expected_inputs="$(printf '%s\n' nixpkgs nixpkgs-unstable nix-darwin nix-homebrew comin | sort -u)"
+expected_inputs="$(printf '%s\n' nixpkgs nixpkgs-darwin nixpkgs-unstable nix-darwin nix-homebrew comin | sort -u)"
 if [[ "$flake_inputs" != "$expected_inputs" ]]; then
-  echo "FAIL: flake.nix inputs ($(printf '%s ' $flake_inputs)) != expected 5 ($(printf '%s ' $expected_inputs))." >&2
+  echo "FAIL: flake.nix inputs ($(printf '%s ' $flake_inputs)) != expected 6 ($(printf '%s ' $expected_inputs))." >&2
   exit 1
 fi
 for input in $flake_inputs; do
@@ -79,7 +79,7 @@ for input in $flake_inputs; do
   grep -qF "\`$input\`" README.md \
     || { echo "FAIL: README does not name direct input '$input'." >&2; exit 1; }
 done
-echo "OK: README names all 5 direct flake inputs (matches flake.nix)."
+echo "OK: README names all 6 direct flake inputs (matches flake.nix)."
 
 # --- (c) Internal anchor resolution --------------------------------------
 # Every '](#slug)' link must resolve to a README heading slug (GitHub rules).

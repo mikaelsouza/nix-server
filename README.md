@@ -1,6 +1,6 @@
 # nix-server
 
-[![Nixpkgs](https://img.shields.io/badge/Nixpkgs-26.05%20Stable-5277C3?logo=nixos&logoColor=white)](https://github.com/NixOS/nixpkgs/tree/nixpkgs-26.05-darwin)
+[![Nixpkgs](https://img.shields.io/badge/Nixpkgs-26.05%20Stable-5277C3?logo=nixos&logoColor=white)](https://github.com/NixOS/nixpkgs/tree/nixos-26.05)
 [![nix-darwin](https://img.shields.io/badge/nix--darwin-26.05-black?logo=apple&logoColor=white)](https://github.com/nix-darwin/nix-darwin/tree/nix-darwin-26.05)
 [![GitOps](https://img.shields.io/badge/GitOps-Comin-blueviolet)](https://github.com/nlewo/comin)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -13,8 +13,8 @@ This README is the **single source of truth** for building, operating, modifying
 
 - **`main` is live production.** `silmeria` runs [Comin](https://github.com/nlewo/comin), which polls this repository and automatically builds + switches its system on every push to `main`. A broken evaluation on `main` can take down a working server (Comin fails safe and keeps the previous generation, but still). **Validate before you push, never push unverified work.**
 - **Two platforms are managed from one flake:** `hrist` (`aarch64-darwin`, macOS) and `silmeria` (`x86_64-linux`, NixOS). A change that compiles for one host may break the other. Always validate **both** hosts.
-- **Channel policy: exactly 5 direct inputs** — `nixpkgs`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. Everything is pinned to `nixpkgs-26.05-darwin` (stable). `nixpkgs-unstable` is a separate input consumed only via `specialArgs` as `pkgs-unstable` — it is **not** applied as an overlay and must not leak into the stable package set.
-- **No secrets are stored in this repository.** Secrets live in host-local paths (e.g. `/etc/comin/access_token`, `/var/lib/tailscale/authkey`). Never commit tokens, keys, or credentials.
+- **Channel policy: exactly 6 direct inputs** — `nixpkgs`, `nixpkgs-darwin`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. Each host tracks the 26.05 release on the branch gated for *its* platform: `silmeria` on `nixos-26.05` (NixOS release tests) and `hrist` on `nixpkgs-26.05-darwin` (Darwin jobset, followed by `nix-darwin`). `nixpkgs-unstable` is a separate input consumed only via `specialArgs` as `pkgs-unstable` — it is **not** applied as an overlay and must not leak into the stable package set.
+- **No secrets are stored in this repository.** Secrets live in host-local paths (e.g. `/etc/comin/access_token`, `/etc/nix-server/deploy-key`). Never commit tokens, keys, or credentials.
 - **`scripts/verify-docs.sh`** machine-checks this file against the repo (see §7). Keep the tree in §2 and the host table in §1 in sync when layout or hosts change.
 
 > Agents: this file's headings are stable anchors. Read §0 and the §13 Agent Checklist before every change, then only the sections your task needs (matrix below).
@@ -56,7 +56,7 @@ This README is the **single source of truth** for building, operating, modifying
 | Host | OS & Platform | Architecture | Role | Key Modules & Services |
 | :--- | :--- | :--- | :--- | :--- |
 | **`hrist`** | macOS (nix-darwin 26.05, stateVersion 5) | `aarch64-darwin` | Personal Workstation | `nix-darwin`, `nix-homebrew` (OrbStack, Chrome, Tailscale, etc.), Zsh direnv hook |
-| **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Claude Code, Minecraft Server, Omada Controller, Podman Containers |
+| **`silmeria`** | NixOS 26.05 (stateVersion 25.11) | `x86_64-linux` | Home Server | Comin GitOps (Private Repo Auth), daily flake.lock auto-update, OpenSSH, Tailscale VPN, Antigravity CLI (`agy`), Claude Code, Minecraft Server |
 
 ---
 
@@ -65,7 +65,7 @@ This README is the **single source of truth** for building, operating, modifying
 The repository is organized into a clean **3-Tier Structure**:
 1. **`hosts/`**: Minimal, machine-specific entrypoints (hardware config, hostnames, module activations).
 2. **`modules/`**: Reusable configuration layers divided into `common/` (cross-platform), `darwin/` (macOS-only), and `nixos/` (Linux-only).
-3. **`flake.nix`**: Lightweight root orchestrator declaring the **5 direct inputs** (`nixpkgs`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`), mapping hosts, and passing `pkgs-unstable` via `specialArgs`. `flake.nix` is authoritative — update this list here if inputs change.
+3. **`flake.nix`**: Lightweight root orchestrator declaring the **6 direct inputs** (`nixpkgs`, `nixpkgs-darwin`, `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`), mapping hosts, and passing `pkgs-unstable` via `specialArgs`. `flake.nix` is authoritative — update this list here if inputs change.
 
 ```text
 nix-server/
@@ -79,7 +79,7 @@ nix-server/
 │   ├── bios-setup-guide.md            # Dell OptiPlex 3000 BIOS settings (C-States, ASPM)
 │   └── realtek-power-management.md    # r8169 / PCIe ASPM root-cause & tuning
 ├── scripts/
-│   └── verify-docs.sh                 # Drift guards: tree vs find, 5 inputs, TOC anchors
+│   └── verify-docs.sh                 # Drift guards: tree vs find, 6 inputs, TOC anchors
 ├── hosts/
 │   ├── hrist/                         # macOS Workstation (aarch64-darwin)
 │   │   └── default.nix                # Imports modules/common & modules/darwin, sets hostname/stateVersion
@@ -90,7 +90,7 @@ nix-server/
     ├── common/                        # Shared cross-platform layer (Linux & macOS)
     │   ├── default.nix                # Aggregates common modules
     │   ├── nix.nix                    # allowUnfree (flakes live in modules/nixos/core/system.nix)
-    │   ├── packages.nix               # Shared CLI tools (git, neovim, nil, nixd, direnv, uv)
+    │   ├── packages.nix               # Shared CLI tools (git, neovim, nixd, direnv, uv)
     │   └── shell.nix                  # Zsh configuration and direnv interactive hook
     ├── darwin/                        # macOS-specific layer
     │   ├── default.nix                # Aggregates darwin modules
@@ -101,14 +101,13 @@ nix-server/
         ├── default.nix                # Aggregates core and services
         ├── core/
         │   ├── system.nix             # System locales, timezones, flakes, and core tools (antigravity-cli, claude-code)
-        │   └── users.nix              # Linux user account (mikaels) and extra groups
+        │   └── users.nix              # Linux user account (mikaels): shell, groups, authorized keys
         └── services/
+            ├── auto-update.nix        # Daily flake.lock refresh pushed to main for Comin to deploy
             ├── comin.nix              # GitOps deployment service (private repo token support; wired via comin.nixosModules.comin)
             ├── minecraft.nix          # Declarative PaperMC Minecraft server
-            ├── omada.nix              # TP-Link Omada Controller (Podman container)
             ├── openssh.nix            # SSH daemon configuration & firewall rules
-            ├── tailscale.nix          # Mesh VPN configuration
-            └── virtualization.nix     # Podman container runtime & Distrobox
+            └── tailscale.nix          # Mesh VPN configuration
 ```
 
 Module separation strategy:
@@ -132,9 +131,9 @@ graph TD
     H2 --> MN
 ```
 
-* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nil`, `nixd`, `direnv`, `uv`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
+* **Shared (`modules/common/`)**: Developer tools (`neovim`, `git`, `nixd`, `direnv`, `uv`) and `allowUnfree = true`. Flakes (`nix-command`, `flakes`) are enabled only on NixOS via `modules/nixos/core/system.nix`; macOS inherits them from the Determinate installer.
 * **macOS (`modules/darwin/`)**: GUI applications managed via Homebrew (Chrome, Obsidian, OrbStack, Discord, Tailscale, etc.), `nix-homebrew` integration, and Determinate daemon compatibility (`nix.enable = false`).
-* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `openssh`, `minecraft`, `omada`, `tailscale`, `virtualization`), Linux account `mikaels` in `wheel`, `networkmanager`, `podman`, `antigravity-cli` and `claude-code` (sourced explicitly via `pkgs-unstable` `specialArgs`), and in-tree `r8169` / PCIe ASPM power management overrides.
+* **NixOS (`modules/nixos/`)**: Systemd services (`comin` with optional private repo access token, `auto-update`, `openssh`, `minecraft`, `tailscale`), Linux account `mikaels` in `wheel` and `networkmanager` with `zsh` as login shell, `antigravity-cli` and `claude-code` (sourced explicitly via `pkgs-unstable` `specialArgs`), automatic store GC/optimise, and in-tree `r8169` / PCIe ASPM power management overrides.
 
 ### Rules of Placement
 
@@ -266,13 +265,15 @@ Once bootstrapped, subsequent updates only need the normal switch command below.
 
 ### Updating Flake Dependencies
 
-There are **5 direct inputs**: `nixpkgs` (pinned to the `nixpkgs-26.05-darwin` track — note this stable-darwin channel also builds the x86_64-linux `silmeria`, intentionally), `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. To update them:
+There are **6 direct inputs**: `nixpkgs` (`nixos-26.05`, builds `silmeria`), `nixpkgs-darwin` (`nixpkgs-26.05-darwin`, builds `hrist` and is followed by `nix-darwin`), `nixpkgs-unstable`, `nix-darwin`, `nix-homebrew`, `comin`. To update them:
 
 ```bash
 nix flake update
 ```
 
-Then re-run the §7 validation (updates can change behavior). Note `flake.lock` contains more nodes than these 5 — the rest are transitive/aliased inputs (e.g. `brew-src`, `flake-compat`, `treefmt-nix`, `nixpkgs_2`); the "5 direct inputs" count refers to what `flake.nix` declares.
+Then re-run the §7 validation (updates can change behavior). Note `flake.lock` contains more nodes than these 6 — the rest are transitive/aliased inputs (e.g. `brew-src`, `flake-compat`, `treefmt-nix`); the "6 direct inputs" count refers to what `flake.nix` declares.
+
+**This is automated on `silmeria`.** `my.services.autoUpdate` runs the same `nix flake update` daily, builds the result, and pushes the refreshed lock to `main`, where Comin deploys it (see §8). Running it by hand is only needed when you want an update *now*, or when you are changing `flake.nix` itself.
 
 ---
 
@@ -281,7 +282,7 @@ Then re-run the §7 validation (updates can change behavior). Note `flake.lock` 
 Run these locally and confirm **both** hosts evaluate before committing/pushing:
 
 ```bash
-# Drift guards: README tree vs find, 5 direct inputs, TOC anchors
+# Drift guards: README tree vs find, 6 direct inputs, TOC anchors
 scripts/verify-docs.sh
 
 # Format check (nixfmt, RFC 166)
@@ -315,6 +316,15 @@ The `silmeria` NixOS server runs **[Comin](https://github.com/nlewo/comin)** in 
 3. Comin evaluates the new flake revision, builds the system closure, and switches the running system automatically.
 4. If an evaluation or build error occurs, Comin fails safely and keeps the previous generation running.
 
+### Automatic dependency updates
+
+Comin deploys whatever `flake.lock` is committed on `main`, so new nixpkgs only reaches the server when that lock moves. `my.services.autoUpdate` closes the loop: a daily systemd timer (`nix-server-auto-update.timer`) refreshes the lock in a working clone under `/var/lib/nix-server-auto-update`, builds `silmeria`'s toplevel to catch a broken update before anyone sees it, and pushes to `main` — which Comin then picks up and switches to on its next poll.
+
+- It needs a host-local SSH key with **write** access to the repo at `my.services.autoUpdate.deployKeyFile` (default `/etc/nix-server/deploy-key`; add the public half under GitHub → Settings → Deploy keys with "Allow write access"). Without it the timer fails and the lock simply stops moving — nothing else breaks.
+- `nixos-rebuild`/`system.autoUpgrade` is deliberately **not** used: it would contend with Comin for the system profile and would rebuild the same pinned lock anyway.
+- Kernel and systemd updates land in the new generation but need a manual reboot to become active.
+- Inspect it with `systemctl status nix-server-auto-update`, `journalctl -u nix-server-auto-update`, or force a run with `systemctl start nix-server-auto-update`.
+
 Comin self-restarts after deploying a change that alters its own unit (its module sets `restartIfChanged = false`, so comin restarts itself; it is *not* restarted by `nixos-rebuild switch`). After a manual `nixos-rebuild switch` that changes `comin.nix`, run `systemctl restart comin` to pick up the new config.
 
 ---
@@ -331,7 +341,8 @@ Comin self-restarts after deploying a change that alters its own unit (its modul
 
 ## 10 Hygiene Secrets and Footguns
 
-- **Never commit secrets.** Tokens/keys are read from host paths (`comin.nix` `accessTokenPath`, `tailscale.nix` `authKeyFile`). If you see a real token, key, or credential being added — stop and route it to a host-local path instead.
+- **Never commit secrets.** Tokens/keys are read from host paths (`comin.nix` `accessTokenPath`, `auto-update.nix` `deployKeyFile`, `tailscale.nix` `authKeyFile`). If you see a real token, key, or credential being added — stop and route it to a host-local path instead.
+- **`tailscale.nix` `authKeyFile` defaults to `null` on purpose.** An auth key is single-use enrollment state; tailscaled persists its own login afterwards. Pointing the option at a path that does not exist makes `tailscaled-autoconnect.service` fail the next time the node has to log in, so set it only while enrolling a node and clear it after.
 - **`flake.lock` must be committed.** Pushing a `flake.nix` change without the lock update (or vice versa) breaks reproducibility and Comin.
 - **`stateVersion` is a one-way switch.** Only touch it when intentionally migrating; changing it backwards risks data loss and is a `feat`/breaking change.
 - **nix-homebrew is finicky.** Cask history in this repo (vlc; musescore was removed) shows Homebrew's API `command_wrapper` errors and the `HOMEBREW_NO_INSTALL_FROM_API=1` workaround. When touching casks, validate with a dry-run and prefer pinned/stable workarounds over deleting entries.
@@ -368,7 +379,7 @@ The scope identifies **what area** the change touches. Use the host name for hos
 
 - `hrist` — macOS host (casks, nix-homebrew, darwin modules)
 - `silmeria` — NixOS host (services, hardware)
-- `comin`, `minecraft`, `omada`, `openssh`, `tailscale`, `virtualization` — individual services
+- `comin`, `auto-update`, `minecraft`, `openssh`, `tailscale` — individual services
 - `nixos`, `darwin`, `common` — the module layer touched
 - `layout` — repository structure
 - `flake` — inputs/outputs in `flake.nix`
@@ -427,7 +438,7 @@ While working:
 Before you finish:
 
 - [ ] Dry-run **both** hosts (§7) and `nix flake check`.
-- [ ] Run `scripts/verify-docs.sh` (tree vs find, 5 direct inputs, TOC anchors) and confirm every TOC anchor resolves.
+- [ ] Run `scripts/verify-docs.sh` (tree vs find, 6 direct inputs, TOC anchors) and confirm every TOC anchor resolves.
 - [ ] If this file describes the layout/options, update it to avoid doc drift.
 - [ ] Push only after validation (main auto-deploys via Comin).
 
@@ -437,10 +448,10 @@ Before you finish:
 
 - Conventional Commits: <https://www.conventionalcommits.org/en/v1.0.0/>
 - NixOS & Flakes Book — Modularizing configs: <https://nixos-and-flakes.thiscute.world/nixos-with-flakes/modularize-the-configuration>
-- Nixpkgs (26.05 stable branch): <https://github.com/NixOS/nixpkgs/tree/nixpkgs-26.05-darwin>
+- Nixpkgs (26.05 stable, NixOS track): <https://github.com/NixOS/nixpkgs/tree/nixos-26.05>
+- Nixpkgs (26.05 stable, Darwin track): <https://github.com/NixOS/nixpkgs/tree/nixpkgs-26.05-darwin>
 - nix-darwin (26.05 branch): <https://github.com/nix-darwin/nix-darwin/tree/nix-darwin-26.05>
 - numtide/blueprint — standard Nix folder layout: <https://github.com/numtide/blueprint>
 - Misterio77 nix-starter-configs — flake + module organization: <https://github.com/Misterio77/nix-starter-configs>
 - Comin (GitOps): <https://github.com/nlewo/comin>
 - Determinate Nix installer: <https://install.determinate.systems/nix>
-- mbentley/omada-controller image: <https://github.com/mbentley/docker-omada-controller>

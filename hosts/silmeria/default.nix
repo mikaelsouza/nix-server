@@ -1,4 +1,4 @@
-{ config, ... }:
+{ ... }:
 
 {
   imports = [
@@ -13,18 +13,20 @@
   # Enable core and custom services options
   my.core.system.enable = true;
   my.core.users.enable = true;
+  my.services.autoUpdate.enable = true;
+  # Reuse the account SSH key already present on this host rather than
+  # provisioning a repo-scoped deploy key. Root reads it directly.
+  my.services.autoUpdate.deployKeyFile = "/home/mikaels/.ssh/id_ed25519";
   my.services.comin.enable = true;
   my.services.openssh.enable = true;
   my.services.minecraft.enable = true;
-  my.services.omada.enable = true;
-  # Open Omada ports so LAN devices can adopt; tailnet access works regardless
-  my.services.omada.openFirewall = true;
   my.services.tailscale.enable = true;
-  my.services.virtualization.enable = true;
 
   # Bootloader settings
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # Bound the ESP: comin builds a generation per push, and /boot is a 1G vfat partition.
+  boot.loader.systemd-boot.configurationLimit = 10;
 
   # Hardware power management & PCIe ASPM
   # Force PCIe ASPM to override Dell BIOS FADT ACPI restrictions, allowing package C8/C10
