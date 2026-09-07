@@ -19,6 +19,21 @@ This README is the **single source of truth** for building, operating, modifying
 
 > Agents: this file's headings are stable anchors. Read §0 and the §13 Agent Checklist before every change, then only the sections your task needs (matrix below).
 
+### Locked decisions — do not change, do not ask
+
+These are deliberate, reviewed choices, not oversights. Agents must **not** change them,
+and must **not** ask for permission to change them or raise them as findings. If a task
+appears to require changing one, stop and say so instead of editing.
+
+| Decision | Where | Why it stays |
+| :--- | :--- | :--- |
+| `homebrew.onActivation.cleanup = "zap"` | `modules/darwin/homebrew.nix` | **`zap` is how apps are uninstalled on `hrist`.** Deleting a cask from the `casks` list is the uninstall, and `zap` is what makes that real: it removes the app *and* its leftover state (preferences, application-support directories, launch agents, caches). Downgrading to `"uninstall"` or `"none"` turns every declarative removal into a half-removal and leaves orphaned state behind. Never lower it, and never "fix" a failed activation by weakening it — fix the cask instead (§10). |
+| Minecraft `online-mode = false`, no whitelist | `modules/nixos/services/minecraft.nix` | The server is not exposed to the internet. `openFirewall = false` plus `networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 25565 ]` means port 25565 is reachable **only** from the tailnet, so **tailnet membership is the access control**. Mojang authentication and a `white-list` would be a second gate in front of a door only invited peers can open. Do not set `online-mode = true`, do not add `white-list`/`enforce-whitelist`, and do not report either as a security issue. |
+
+Granting or revoking Minecraft access is a **Tailscale** operation (invite or remove the
+peer / adjust tailnet ACLs), not a Minecraft one. Nothing in this repository needs to
+change to add or remove a player.
+
 ### Task-to-section matrix
 
 | Task | Read |
@@ -30,6 +45,7 @@ This README is the **single source of truth** for building, operating, modifying
 | Docs-only change | §11 |
 | Updating flake inputs | §6 + §7 |
 | Touching modules/common | §0 + §7 |
+| Homebrew `cleanup`, Minecraft `online-mode`/whitelist | §0 Locked decisions — **do not change** |
 
 ## Table of Contents
 
@@ -47,7 +63,8 @@ This README is the **single source of truth** for building, operating, modifying
 - [11 Commit Convention](#11-commit-convention)
 - [12 Branching and PR Workflow](#12-branching-and-pr-workflow)
 - [13 Agent Checklist](#13-agent-checklist)
-- [14 References](#14-references)
+- [14 Security Posture](#14-security-posture)
+- [15 References](#15-references)
 
 ---
 
@@ -94,7 +111,7 @@ nix-server/
     │   └── shell.nix                  # Zsh configuration and direnv interactive hook
     ├── darwin/                        # macOS-specific layer
     │   ├── default.nix                # Aggregates darwin modules
-    │   ├── homebrew.nix               # Homebrew taps, brews, and GUI casks
+    │   ├── homebrew.nix               # Homebrew taps, brews, casks; cleanup = "zap" (locked, §0)
     │   ├── system.nix                 # macOS daemon settings (nix.enable = false)
     │   └── users.nix                  # macOS primaryUser definition
     └── nixos/                         # NixOS-specific layer
@@ -105,7 +122,7 @@ nix-server/
         └── services/
             ├── auto-update.nix        # Daily flake.lock refresh pushed to main for Comin to deploy
             ├── comin.nix              # GitOps deployment service (private repo token support; wired via comin.nixosModules.comin)
-            ├── minecraft.nix          # Declarative PaperMC Minecraft server
+            ├── minecraft.nix          # Declarative PaperMC server; offline-mode, tailnet-only (locked, §0)
             ├── openssh.nix            # SSH daemon configuration & firewall rules
             └── tailscale.nix          # Mesh VPN configuration
 ```
@@ -346,6 +363,8 @@ Comin self-restarts after deploying a change that alters its own unit (its modul
 - **`flake.lock` must be committed.** Pushing a `flake.nix` change without the lock update (or vice versa) breaks reproducibility and Comin.
 - **`stateVersion` is a one-way switch.** Only touch it when intentionally migrating; changing it backwards risks data loss and is a `feat`/breaking change.
 - **nix-homebrew is finicky.** Cask history in this repo (vlc; musescore was removed) shows Homebrew's API `command_wrapper` errors and the `HOMEBREW_NO_INSTALL_FROM_API=1` workaround. When touching casks, validate with a dry-run and prefer pinned/stable workarounds over deleting entries.
+- **`homebrew.onActivation.cleanup = "zap"` is load-bearing, not a default.** Removing a cask from `casks` is only a real uninstall because `zap` also clears the app's leftover state. It is a §0 locked decision: do not lower it to `"uninstall"`/`"none"`, and do not disable it to get past a failing activation.
+- **Minecraft runs offline-mode with no whitelist on purpose.** Access is gated by tailnet membership (`openFirewall = false` + `firewall.interfaces."tailscale0".allowedTCPPorts = [ 25565 ]`), not by Mojang auth. Also a §0 locked decision — do not "harden" it.
 - **Local agent tooling** (`.opencode/`, `.agents/`) is untracked — do not commit it or reference it as repo content.
 - Do not commit `result`, `result-*`, `.direnv`, or other build artifacts.
 
@@ -425,6 +444,7 @@ refactor(layout): Phase 5 — Modularize repository by machine and platform laye
 Before you start:
 
 - [ ] Read this file (§0 and this checklist); identify which host(s) and module layer(s) the change touches.
+- [ ] Check **§0 Locked decisions**. If your task touches one, it is out of scope — say so instead of changing it or asking.
 - [ ] Grep the target area (e.g. `modules/darwin/`, `modules/nixos/services/`) and mimic existing patterns.
 
 While working:
@@ -444,7 +464,48 @@ Before you finish:
 
 ---
 
-## 14 References
+## 14 Security Posture
+
+Reviewed 2026-09-07 against the live `silmeria` host (not just the config). Every item
+below carries a **status**, and that status is a recorded decision:
+
+- **fixed** — done in this repo. The Fix column says what was actually changed.
+- **accepted** — considered and deliberately left alone. **Do not re-raise it as a finding.**
+- **deferred** — real, acknowledged, not scheduled. Leave it alone unless asked.
+- **_undecided_** — not yet triaged by the owner. Raise it, do not silently "fix" it.
+
+Severity is impact on this host, not a generic CVSS score.
+
+| # | Finding | Sev | Status | Fix |
+| :-- | :--- | :-- | :--- | :--- |
+| 1 | SSH accepts passwords (`PasswordAuthentication` + `KbdInteractiveAuthentication`) on the LAN and from every tailnet peer | High | **accepted** | **Deliberate — do not "fix" this.** The owner moves between machines constantly and distributing an SSH key to each one is more friction than the risk warrants. Password login stays. Compensating controls: `PermitRootLogin = "no"`, port 22 is not forwarded from the internet, and the tailnet is invite-only. The residual risk is a compromised LAN device or guest machine brute-forcing `mikaels`, so **keep that password strong**. |
+| 2 | `firewall.trustedInterfaces = [ "tailscale0" ]` bypassed the firewall for **every** port, not just 25565 | High | **fixed** | `trustedInterfaces` no longer lists `tailscale0` (`tailscale.nix`), so the tailnet is firewalled like any other network and only `lo` stays trusted. Each service opens its own port: `minecraft.nix` sets `firewall.interfaces."tailscale0".allowedTCPPorts = [ 25565 ]`, and SSH stays reachable through the existing global `allowedTCPPorts = [ 22 ]` in `openssh.nix`. Tailnet peers can therefore reach only 22/tcp and 25565/tcp — comin's `*:4243` exporter and everything else are now blocked. **A restrictive Tailscale ACL was considered and rejected:** every tailnet peer is *meant* to have both SSH and Minecraft, so no per-user ACL is wanted. What this change still buys is least-exposure for everything else — comin's `:4243` exporter, and any future service that binds a port without expecting tailnet traffic, are closed unless a module opens them explicitly. **Known cost, accepted:** tailscaled's peerapi port is dynamic and therefore cannot be allowlisted, so **inbound Taildrop to `silmeria` no longer works** (outbound Taildrop *from* the host is unaffected). Use `scp` instead — password SSH is retained by decision #1. Do not re-add `trustedInterfaces` to restore it. |
+| 3 | `autoUpdate.deployKeyFile` **used to point at the personal account key** (`/home/mikaels/.ssh/id_ed25519`), so the credential that pushes to `main` was readable by anything running as `mikaels` | Med | **fixed** | The host override in `hosts/silmeria/default.nix` was deleted; `deployKeyFile` now resolves to the module default `/etc/nix-server/deploy-key`, a repo-scoped GitHub deploy key with write access. Gains: the push credential is now `0400 root` inside `drwx------ root` `/etc/nix-server`, unreachable from user-level code; the root automation no longer depends on a file owned by a normal user; and the deploy key is revocable on its own without disturbing personal SSH access. **This does not reduce the exposure of the personal key**, which is still at `/home/mikaels/.ssh/id_ed25519` (`0600 mikaels`) and still grants push to every repo the account can reach — see finding #10. What it does is remove the *system's* dependency on that key, which is what makes removing it from this host possible. **Limit, stated honestly:** a write-capable deploy key can still push to `main`, and `main` still auto-deploys as root, so "push access to `main` = root on this host" is unchanged — that is finding #4 (commit signing), not this one. Severity is **Med** rather than High because the blast radius was high but the likelihood on a homelab with no inbound exposure is not: exploitation requires a supply-chain or agent compromise running as `mikaels` first. |
+| 4 | Comin deploys **unsigned commits** (`gpg_public_key_paths: []`), so a stolen token or key is root here | Med | _undecided_ | `services.comin.sshAllowedSignersPath`; auto-update's commits must then be signed too |
+| 5 | Comin metrics exporter binds all interfaces (`*:4243`) — no longer *reachable* from the tailnet since #2 was fixed, but the bind address itself is unchanged, so any future trusted interface or port rule re-exposes it | Med | _undecided_ | `services.comin.exporter.listen_address = "127.0.0.1"` |
+| 6 | Running kernel can lag the deployed generation indefinitely (deploys never reboot) | Med | _undecided_ | Choose a reboot policy; `system.autoUpgrade` is **not** an option (§8) |
+| 7 | `minecraft-server` unit runs with `ProtectSystem=no`, `NoNewPrivileges=no` | Low | _undecided_ | Add `systemd.services.minecraft-server.serviceConfig` hardening (host-side only) |
+| 8 | `auto-update.nix` uses `StrictHostKeyChecking=accept-new` (TOFU on github.com) | Low | _undecided_ | Pin `programs.ssh.knownHosts`, then require `yes` |
+| 9 | No disk encryption; root and swap are plaintext | Low | _undecided_ | Physical access yields the comin token, SSH key, and Tailscale state |
+| 10 | The **personal account SSH key** lives on this host (`/home/mikaels/.ssh/id_ed25519`, `0600 mikaels`) and grants push to every repo the account can reach. This box deliberately runs AI coding agents (`claude-code`, `antigravity-cli`) and package managers (`uv`, `npm`, `pip`) **as `mikaels`**, any of which can read it. Not fixed by #3 — that only moved the *automation* off it | Med | _undecided_ | If this repo is normally edited from `hrist` and deployed via Comin, delete the key from `silmeria` and the path closes. If commits are made from the server itself, the key stays and this is a knowingly accepted risk — record which. |
+
+### Verified correct — do not re-flag
+
+- `PermitRootLogin = "no"` in `openssh.nix`.
+- The admin SSH key is declared in `core/users.nix`, so a rebuild onto fresh hardware stays reachable.
+- Minecraft `openFirewall = false` — 25565 is never opened globally; it is opened only on `tailscale0` via `firewall.interfaces."tailscale0".allowedTCPPorts`, so it is never reachable on the LAN interface.
+- `/etc/comin/access_token` is `0600 root`, and the repo really is private, so the token is not redundant.
+- Homebrew `zap` and Minecraft offline-mode are **§0 locked decisions**, not gaps.
+
+### Operational note
+
+Minecraft usernames are unauthenticated by design here (§0), so **any op username is
+claimable by any tailnet peer**. Keeping the op list empty is what makes offline-mode
+cost nothing. This is a habit, not a config setting.
+
+---
+
+## 15 References
 
 - Conventional Commits: <https://www.conventionalcommits.org/en/v1.0.0/>
 - NixOS & Flakes Book — Modularizing configs: <https://nixos-and-flakes.thiscute.world/nixos-with-flakes/modularize-the-configuration>
