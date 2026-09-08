@@ -1,16 +1,19 @@
 {
+  config,
   pkgs,
   pkgs-unstable,
   ...
 }:
 
+let
+  # Repo the auto-update timer pulls from and pushes the refreshed lock to.
+  repository = "git@github.com:mikaelsouza/nix-server.git";
+  branch = "main";
+  # Repo-scoped GitHub deploy key with write access, root-only, never committed.
+  deployKeyFile = "/etc/nix-server/deploy-key";
+in
 {
-  imports = [
-    ./hardware-configuration.nix
-    ./modules/auto-update.nix
-    ./modules/comin.nix
-    ./modules/minecraft.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
 
   # --- Nix -----------------------------------------------------------------
 
@@ -21,8 +24,7 @@
     "flakes"
   ];
 
-  # Collect garbage and deduplicate the store: comin builds a new system
-  # closure on every push to main, and nothing else ever reclaims it.
+  # Comin builds a new closure on every push to main; nothing else reclaims it.
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -34,17 +36,14 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  # Bound the ESP: comin builds a generation per push, and /boot is a 1G vfat partition.
+  # /boot is a 1G vfat partition and comin adds a generation per push.
   boot.loader.systemd-boot.configurationLimit = 10;
 
-  # Hardware power management & PCIe ASPM
-  # Force PCIe ASPM to override Dell BIOS FADT ACPI restrictions, allowing package C8/C10
+  # Override Dell's ACPI FADT `no ASPM` flag so the CPU reaches package C8/C10.
   boot.kernelParams = [
     "pcie_aspm=force"
     "pcie_aspm.policy=powersupersave"
   ];
-
-  # Enable powertop auto-tuning on startup for runtime PM across PCI/USB/SATA devices
   powerManagement.powertop.enable = true;
 
   # --- Networking ----------------------------------------------------------
@@ -52,23 +51,13 @@
   networking.hostName = "silmeria";
   networking.networkmanager.enable = true;
 
-  # DNS is pinned statically rather than taken from DHCP, for two reasons:
-  #
-  #   1. The LAN router reboots daily around 06:00 and flaps enp1s0 for ~60s.
-  #      tailscaled recomputes its upstream resolvers on a link change, reading
-  #      them from resolvconf, but NetworkManager re-registers its DHCP-derived
-  #      record ~10s *after* the link returns. tailscaled therefore read an
-  #      empty list, pinned `Routes:{.:[]}`, and answered every query with
-  #      SERVFAIL until restarted. Routes stayed up, so the host remained
-  #      reachable over SSH/Tailscale while all outbound lookups failed.
-  #   2. That DHCP lease also advertises 192.168.1.1, which is off-subnet and
-  #      unroutable here, so each lookup stalled ~5s before falling back.
-  #
-  # `dns = "none"` keeps NetworkManager off resolv.conf, and networking.nameservers
-  # registers a static resolvconf record (`resolvconf -m 1 -a static`) from a
-  # oneshot unit that does not depend on link state. tailscaled then always reads
-  # a non-empty upstream list, flap or not. The gateway stays first so LAN names
-  # still resolve; the public resolvers cover the router's reboot window.
+  # DNS is static, not from DHCP. The router reboots daily and flaps enp1s0;
+  # NetworkManager re-registers its resolvconf record ~10s after the link
+  # returns, so tailscaled recomputed upstreams from an empty list and
+  # SERVFAILed every query until restarted. The DHCP lease also advertises an
+  # off-subnet resolver (192.168.1.1) that stalls ~5s per lookup. `dns = "none"`
+  # keeps NetworkManager off resolv.conf; `nameservers` registers a static
+  # record from a unit that does not depend on link state.
   networking.networkmanager.dns = "none";
   networking.nameservers = [
     "192.168.0.1"
@@ -79,7 +68,6 @@
   # --- Locale --------------------------------------------------------------
 
   time.timeZone = "America/Sao_Paulo";
-
   i18n.defaultLocale = "en_US.UTF-8";
 
   i18n.extraLocaleSettings = {
@@ -102,8 +90,7 @@
   users.users.mikaels = {
     isNormalUser = true;
     description = "Mikael Souza";
-    # Match the shell that programs.zsh configures below, otherwise the direnv
-    # hook in programs.zsh.interactiveShellInit never runs.
+    # Must match programs.zsh below, or direnv's zsh hook never runs.
     shell = pkgs.zsh;
     extraGroups = [
       "networkmanager"
@@ -122,9 +109,8 @@
 
   # --- Packages ------------------------------------------------------------
 
-  # `system.path` is a buildEnv with `ignoreCollisions = true`: when two
-  # packages ship the same file, the earlier entry silently wins. This order is
-  # the one the pre-flattening module layout produced, so it is kept as-is.
+  # `system.path` sets `ignoreCollisions = true`, so on a file collision the
+  # earlier entry wins. Order is load-bearing; leave it alone.
   environment.systemPackages = [
     pkgs.vim
     pkgs.powertop
@@ -152,21 +138,114 @@
 
   # --- Tailscale -----------------------------------------------------------
 
-  # `authKeyFile` is deliberately left unset. An auth key is single-use
-  # enrollment state and tailscaled persists its own login afterwards, so
-  # pointing the option at a path that does not exist makes
-  # `tailscaled-autoconnect.service` fail the next time the node has to log in.
-  # Set it only while enrolling this node, then clear it again.
+  # `authKeyFile` stays unset: an auth key is single-use enrollment state and
+  # tailscaled persists its own login, so pointing it at a missing path makes
+  # `tailscaled-autoconnect` fail the next time the node logs in.
   #
-  # The tailnet is NOT blanket-trusted: `tailscale0` is deliberately absent
-  # from `networking.firewall.trustedInterfaces`, so the firewall applies to
-  # tailnet peers like any other network. Each service opens only the port it
-  # needs on `tailscale0` (see `modules/minecraft.nix` for 25565/tcp); SSH is
-  # already covered by the global `allowedTCPPorts = [ 22 ]` above. Tailscale's
-  # own UDP underlay (port 41641) rides the physical interface, not
-  # `tailscale0`, so it is unaffected by these rules.
+  # `tailscale0` is deliberately NOT in `firewall.trustedInterfaces`: tailnet
+  # peers are firewalled like anyone else and each service opens its own port.
   services.tailscale.enable = true;
 
-  # Stateful data release version (do not change unless read the manual)
+  # --- Minecraft -----------------------------------------------------------
+
+  services.minecraft-server = {
+    enable = true;
+    eula = true;
+    declarative = true; # required for serverProperties to take effect
+    openFirewall = false; # 25565 is opened on tailscale0 only, below
+    package = pkgs.papermc;
+    jvmOpts = "-Xms10G -Xmx10G -XX:+UseG1GC";
+    # LOCKED (README): offline-mode with no whitelist is deliberate. 25565 is
+    # reachable only over Tailscale, so tailnet membership is the access control.
+    serverProperties.online-mode = false;
+  };
+
+  networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 25565 ];
+
+  # --- GitOps deployment ---------------------------------------------------
+
+  # Comin polls this repository and switches the system on every push to `main`.
+  # A broken evaluation fails safe: the previous generation keeps running.
+  services.comin = {
+    enable = true;
+    remotes = [
+      {
+        name = "origin";
+        url = "https://github.com/mikaelsouza/nix-server.git";
+        branches.main.name = "main";
+        branches.testing.name = ""; # skip the nonexistent testing branch
+        # Host-local, root-only, never committed. The repository is private.
+        auth.access_token_path = "/etc/comin/access_token";
+      }
+    ];
+  };
+
+  # Comin deploys the committed lock, so bumping `flake.lock` in git is the only
+  # way new nixpkgs reaches this host. `system.autoUpgrade` would fight comin for
+  # the system profile and rebuild the same pins anyway.
+  systemd.services.nix-server-auto-update = {
+    description = "Refresh flake.lock and push it for Comin to deploy";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+
+    path = [
+      pkgs.git
+      pkgs.openssh
+      config.nix.package
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      StateDirectory = "nix-server-auto-update";
+      WorkingDirectory = "/var/lib/nix-server-auto-update";
+      Environment = [ "HOME=/var/lib/nix-server-auto-update" ];
+      # oneshot defaults to 90s; building a system closure takes longer.
+      TimeoutStartSec = "6h";
+    };
+
+    script = ''
+      mkdir -p "$HOME/.ssh"
+      export GIT_SSH_COMMAND="ssh -i ${deployKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+      export GIT_AUTHOR_NAME="silmeria auto-update"
+      export GIT_AUTHOR_EMAIL="auto-update@silmeria.local"
+      export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+      export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+
+      if [ ! -d repo/.git ]; then
+        git clone --branch ${branch} ${repository} repo
+      fi
+      cd repo
+
+      # Discard anything left by a failed run and match the remote.
+      git remote set-url origin ${repository}
+      git fetch --prune origin ${branch}
+      git checkout ${branch}
+      git reset --hard origin/${branch}
+
+      nix flake update --commit-lock-file
+
+      if git diff --quiet origin/${branch} HEAD; then
+        echo "flake.lock already current; nothing to push"
+        exit 0
+      fi
+
+      # Comin fails safe on a broken build, but catch it here first.
+      nix build --no-link .#nixosConfigurations.${config.networking.hostName}.config.system.build.toplevel
+
+      git push origin ${branch}
+      echo "pushed refreshed flake.lock; Comin will deploy it on its next poll"
+    '';
+  };
+
+  systemd.timers.nix-server-auto-update = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+      RandomizedDelaySec = "45min";
+    };
+  };
+
+  # Stateful data release version (do not change unless you read the manual).
   system.stateVersion = "25.11";
 }
