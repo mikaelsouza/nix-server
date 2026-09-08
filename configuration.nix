@@ -146,6 +146,16 @@ in
 
   networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 25565 ];
 
+  # The nixpkgs module already hardens this unit heavily (PrivateDevices,
+  # ProtectHome, RestrictSUIDSGID, an empty CapabilityBoundingSet, …) but leaves
+  # the filesystem writable and privilege escalation open. The server only ever
+  # writes under its dataDir, plus the private /tmp it already gets.
+  systemd.services.minecraft-server.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [ config.services.minecraft-server.dataDir ];
+    NoNewPrivileges = true;
+  };
+
   # --- GitOps deployment ---------------------------------------------------
 
   # Comin polls this repository and switches the system on every push to `main`.
