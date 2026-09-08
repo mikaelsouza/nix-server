@@ -40,6 +40,7 @@ in
   boot.loader.systemd-boot.configurationLimit = 10;
 
   # Override Dell's ACPI FADT `no ASPM` flag so the CPU reaches package C8/C10.
+  # See HARDWARE.md.
   boot.kernelParams = [
     "pcie_aspm=force"
     "pcie_aspm.policy=powersupersave"
