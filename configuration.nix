@@ -168,6 +168,14 @@ in
     exporter.listen_address = "127.0.0.1";
   };
 
+  # Pin github.com's host key so the auto-update unit below can require it
+  # (`StrictHostKeyChecking=yes`) instead of trusting whatever answers first.
+  # Value cross-checked against https://api.github.com/meta over HTTPS and a
+  # live ssh-keyscan; both agree. Written to /etc/ssh/ssh_known_hosts, which the
+  # system ssh_config reads as GlobalKnownHostsFile.
+  programs.ssh.knownHosts."github.com".publicKey =
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
   # Comin deploys the committed lock, so bumping `flake.lock` in git is the only
   # way new nixpkgs reaches this host. `system.autoUpgrade` would fight comin for
   # the system profile and rebuild the same pins anyway.
@@ -193,7 +201,7 @@ in
 
     script = ''
       mkdir -p "$HOME/.ssh"
-      export GIT_SSH_COMMAND="ssh -i ${deployKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+      export GIT_SSH_COMMAND="ssh -i ${deployKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
       export GIT_AUTHOR_NAME="silmeria auto-update"
       export GIT_AUTHOR_EMAIL="auto-update@silmeria.local"
       export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
