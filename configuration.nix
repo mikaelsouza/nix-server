@@ -162,6 +162,10 @@ in
         auth.access_token_path = "/etc/comin/access_token";
       }
     ];
+    # Bind the metrics exporter to loopback. The firewall already blocks 4243 on
+    # every interface, but the wildcard bind meant any future port rule or
+    # trusted interface would silently re-expose it.
+    exporter.listen_address = "127.0.0.1";
   };
 
   # Comin deploys the committed lock, so bumping `flake.lock` in git is the only
