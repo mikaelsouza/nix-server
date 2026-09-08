@@ -252,6 +252,25 @@ in
     };
   };
 
+  # Comin activates a new generation but never reboots, so a kernel or systemd
+  # update would otherwise sit unused until someone noticed. Reboot daily at
+  # 06:00 local time to bound that lag.
+  #
+  # `Persistent` is deliberately left false: with it on, a machine that was down
+  # at 06:00 would reboot again immediately on the next boot.
+  systemd.services.scheduled-reboot = {
+    description = "Daily reboot to pick up new kernels";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.systemd}/bin/systemctl reboot";
+    };
+  };
+
+  systemd.timers.scheduled-reboot = {
+    wantedBy = [ "timers.target" ];
+    timerConfig.OnCalendar = "*-*-* 06:00:00";
+  };
+
   # Stateful data release version (do not change unless you read the manual).
   system.stateVersion = "25.11";
 }
