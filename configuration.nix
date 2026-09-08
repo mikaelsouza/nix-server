@@ -88,9 +88,8 @@ in
   };
 
   programs.zsh.enable = true;
-  programs.zsh.interactiveShellInit = ''
-    eval "$(direnv hook zsh)"
-  '';
+  # Installs direnv, hooks it into zsh, and enables nix-direnv.
+  programs.direnv.enable = true;
 
   # --- Packages ------------------------------------------------------------
 
@@ -105,7 +104,6 @@ in
     pkgs.git
     pkgs.neovim
     pkgs.nixd
-    pkgs.direnv
     pkgs.uv
   ];
 
