@@ -16,5 +16,5 @@ recorded security decisions, `HARDWARE.md` for BIOS/ASPM.
 - **Do not edit `hardware-configuration.nix`** (generated) or change `system.stateVersion`.
 - **Minecraft `online-mode = false` with no whitelist is a locked decision.** Tailnet membership is
   the access control. Do not "harden" it and do not raise it as a finding — see README.
-- Before touching SSH, the firewall, or the deploy key, read `SECURITY.md`: several findings there
-  are marked **accepted** and must not be re-raised.
+- Before touching SSH, the firewall, or the deploy key, read `SECURITY.md`. Entries under
+  "do not re-raise" and "do not undo" are settled decisions, not oversights.
