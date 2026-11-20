@@ -68,7 +68,8 @@ and `9877` (query) over `tailscale0` only.
 
 To connect over Tailscale, find `silmeria`'s tailnet IPv4 with `tailscale ip -4` on the host, then
 in V Rising go to **Play → Online Play → Find Servers → Direct Connect**, enter
-`<silmeria-tailscale-ipv4>:9876`, tick **LAN Server**, and click **Connect**. The `100.x.y.z` IPv4
+`<silmeria-tailscale-ipv4>:9876`, tick **LAN Server**, and click **Connect** (see
+[VRISING.md](VRISING.md) for a shareable player guide and FAQ). The `100.x.y.z` IPv4
 address is required — Direct Connect does not resolve MagicDNS hostnames. The server runs with
 `VR_LAN_MODE = "true"` so Tailscale peers do not hit Steam's `AuthTicketNetworkIdentityFailure`.
 
