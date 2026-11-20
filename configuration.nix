@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   pkgs-unstable,
   ...
@@ -154,6 +155,173 @@ in
     ProtectSystem = "strict";
     ReadWritePaths = [ config.services.minecraft-server.dataDir ];
     NoNewPrivileges = true;
+  };
+
+  # --- V Rising ------------------------------------------------------------
+
+  # Podman with `--network=host` avoids Docker's iptables/nftables bypass, so
+  # `networking.firewall` continues to enforce `tailscale0`-only access.
+  virtualisation.podman = {
+    enable = true;
+    autoPrune = {
+      enable = true;
+      dates = "weekly";
+    };
+  };
+  virtualisation.oci-containers.backend = "podman";
+
+  systemd.tmpfiles.rules = [
+    "d /var/lib/vrising 0755 root root -"
+    "d /var/lib/vrising/server 0755 root root -"
+    "d /var/lib/vrising/persistentdata 0755 root root -"
+    "d /var/lib/vrising/backups 0755 root root -"
+  ];
+
+  # V Rising Dedicated Server (AppID 1829350) is Windows-only and runs under
+  # Wine + Xvfb in the pinned `trueosiris/vrising` container.
+  #
+  # Tailscale peers MUST connect with `VR_LAN_MODE=true`: in default internet
+  # mode, Steam auth tickets compare the client's destination IP against the
+  # server's outgoing WAN IP and drop Tailscale peers with
+  # `AuthTicketNetworkIdentityFailure`. Peers connect via Direct Connect using
+  # `<silmeria-tailscale-ipv4>:9876` with the "LAN Server" checkbox ticked.
+  #
+  # Settings use V Rising's native `VR_*` env vars (read directly by
+  # VRisingServer.exe inside Wine) rather than `HOST_SETTINGS_*` (which silently
+  # drops keys absent from factory JSON like LanMode, upstream #117) or
+  # `WORLDNAME`/`GAMEPORT`/`QUERYPORT` (quoting bug in start.sh, upstream #119).
+  #
+  # No password is set deliberately: 9876/9877 UDP are opened on `tailscale0`
+  # only and public listing is off, so tailnet membership is the access control
+  # (same model as Minecraft).
+  virtualisation.oci-containers.containers.vrising = {
+    image = "docker.io/trueosiris/vrising:2026-04-23-1036";
+    # Keep the upstream CRLF guard; `exec` preserves PID 1 SIGTERM handling.
+    entrypoint = "/bin/bash";
+    cmd = [
+      "-c"
+      "sed -i 's/\\r//g' /start.sh && exec /bin/bash /start.sh"
+    ];
+    extraOptions = [
+      "--network=host"
+      "--init"
+      "--stop-timeout=60"
+    ];
+    volumes = [
+      "/var/lib/vrising/server:/mnt/vrising/server"
+      "/var/lib/vrising/persistentdata:/mnt/vrising/persistentdata"
+    ];
+    environment = {
+      TZ = config.time.timeZone;
+      SERVERNAME = "silmeria";
+      LOGDAYS = "30";
+      WINEDEBUG = "fixme-all";
+      VR_SAVE_NAME = "world1";
+      VR_GAME_PORT = "9876";
+      VR_QUERY_PORT = "9877";
+      VR_MAX_USERS = "10";
+      VR_LAN_MODE = "true";
+      VR_LIST_ON_STEAM = "false";
+      VR_LIST_ON_EOS = "false";
+      # Presets guarantee Standard PvE (Normal) on first boot (V Rising's
+      # unconfigured default is PvP). To override preset-controlled keys in
+      # /var/lib/vrising/persistentdata/Settings/ServerGameSettings.json later,
+      # remove VR_PRESET / VR_DIFFICULTY_PRESET here and set GameModeType=PvE
+      # and CastleDamageMode=Never in ServerGameSettings.json.
+      VR_PRESET = "StandardPvE";
+      VR_DIFFICULTY_PRESET = "Difficulty_Normal";
+      # Throttle simulation tick rate when empty so Alder Lake still idles into
+      # deep C-states (see HARDWARE.md).
+      VR_LOWER_FPS_WHEN_EMPTY = "true";
+      VR_LOWER_FPS_WHEN_EMPTY_VALUE = "5";
+      VR_SAVE_INTERVAL = "120";
+      VR_SAVE_COUNT = "25";
+    };
+  };
+
+  systemd.services.podman-vrising = {
+    after = [
+      "network-online.target"
+      "tailscaled.service"
+    ];
+    wants = [ "network-online.target" ];
+    # oci-containers.nix sets TimeoutStopSec = 120 at default priority;
+    # mkForce overrides it to 90s (30s above Podman's --stop-timeout=60).
+    serviceConfig.TimeoutStopSec = lib.mkForce 90;
+  };
+
+  networking.firewall.interfaces."tailscale0".allowedUDPPorts = [
+    9876
+    9877
+  ];
+
+  # Daily cold backup of V Rising saves and settings 15 minutes before the
+  # 06:00 reboot. Stops podman-vrising (if running) so V Rising flushes a final
+  # save, archives a quiescent snapshot, and restores the previous running state.
+  systemd.services.vrising-backup = {
+    description = "Cold backup of V Rising saves and settings";
+    path = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.systemd
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      TimeoutStartSec = "15min";
+      ProtectSystem = "full";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+    };
+    script = ''
+      set -euo pipefail
+      data_dir="/var/lib/vrising/persistentdata"
+      backup_dir="/var/lib/vrising/backups"
+      mkdir -p "$backup_dir"
+      stamp="$(date +%Y%m%d-%H%M)"
+      archive="$backup_dir/vrising-$stamp.tar.gz"
+
+      was_active=0
+      if systemctl is-active --quiet podman-vrising.service; then
+        was_active=1
+      fi
+
+      cleanup() {
+        rm -f "$archive.tmp" || true
+        if [ "$was_active" -eq 1 ]; then
+          systemctl start podman-vrising.service
+        fi
+      }
+      trap cleanup EXIT
+
+      if [ "$was_active" -eq 1 ]; then
+        systemctl stop podman-vrising.service
+      fi
+
+      targets=()
+      if [ -d "$data_dir/Saves" ]; then
+        targets+=("Saves")
+      fi
+      if [ -d "$data_dir/Settings" ]; then
+        targets+=("Settings")
+      fi
+
+      if [ "''${#targets[@]}" -gt 0 ]; then
+        tar -C "$data_dir" -czf "$archive.tmp" "''${targets[@]}"
+        mv "$archive.tmp" "$archive"
+      else
+        echo "No Saves or Settings directories found under $data_dir; skipping archive"
+      fi
+
+      find "$backup_dir" -maxdepth 1 -name 'vrising-*.tar.gz' -type f -mtime +14 -delete
+    '';
+  };
+
+  systemd.timers.vrising-backup = {
+    wantedBy = [ "timers.target" ];
+    timerConfig.OnCalendar = "*-*-* 05:45:00";
   };
 
   # --- GitOps deployment ---------------------------------------------------

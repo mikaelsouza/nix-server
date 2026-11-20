@@ -1,7 +1,7 @@
 # nix-server
 
 NixOS configuration for **`silmeria`**, a home server on a Dell OptiPlex 3000 (Intel i5-12500T,
-`x86_64-linux`). It runs Minecraft, SSH and Tailscale, and deploys itself:
+`x86_64-linux`). It runs Minecraft, V Rising, SSH and Tailscale, and deploys itself:
 [Comin](https://github.com/nlewo/comin) polls this repository and switches the system on every push
 to `main`.
 
@@ -60,6 +60,40 @@ Never commit tokens, keys or credentials. All three live outside the repository,
 | `/etc/nix-server/deploy-key` | auto-update timer | repo-scoped GitHub deploy key with write access |
 | Tailscale auth key | `services.tailscale.authKeyFile` | transient — set only while enrolling the node, then clear it |
 
+## V Rising
+
+A vanilla V Rising dedicated server runs in a pinned rootful Podman container (`podman-vrising`,
+`docker.io/trueosiris/vrising:2026-04-23-1036`, `--network=host`), reachable on UDP `9876` (game)
+and `9877` (query) over `tailscale0` only.
+
+To connect over Tailscale, find `silmeria`'s tailnet IPv4 with `tailscale ip -4` on the host, then
+in V Rising go to **Play → Online Play → Find Servers → Direct Connect**, enter
+`<silmeria-tailscale-ipv4>:9876`, tick **LAN Server**, and click **Connect**. The `100.x.y.z` IPv4
+address is required — Direct Connect does not resolve MagicDNS hostnames. The server runs with
+`VR_LAN_MODE = "true"` so Tailscale peers do not hit Steam's `AuthTicketNetworkIdentityFailure`.
+
+| Path | Contents |
+| :--- | :--- |
+| `/var/lib/vrising/server` | SteamCMD server install (AppID `1829350`) |
+| `/var/lib/vrising/persistentdata` | `Saves/`, `Settings/` and 30-day rotated `*-VRisingServer.log` |
+| `/var/lib/vrising/backups` | Daily `05:45` cold backups (`vrising-YYYYMMDD-HHMM.tar.gz`, 14-day retention) |
+
+`vrising-backup.timer` runs daily at `05:45` local time (15 minutes before the `06:00` scheduled
+reboot), stopping `podman-vrising` to flush a clean save before archiving `Saves/` and `Settings/`:
+
+```bash
+systemctl status podman-vrising            # or: journalctl -u podman-vrising -f
+systemctl status vrising-backup            # or: journalctl -u vrising-backup
+```
+
+`VR_PRESET = "StandardPvE"` and `VR_DIFFICULTY_PRESET = "Difficulty_Normal"` guarantee Standard PvE
+(Normal) on first boot and override preset-controlled keys in
+`/var/lib/vrising/persistentdata/Settings/ServerGameSettings.json`. To customize those keys on-host,
+remove `VR_PRESET` (and/or `VR_DIFFICULTY_PRESET`) from `configuration.nix` and set
+`"GameModeType": "PvE"` and `"CastleDamageMode": "Never"` in `ServerGameSettings.json`. For in-game
+admin access, add SteamID64 entries (one per line) to
+`/var/lib/vrising/persistentdata/Settings/adminlist.txt` and restart `podman-vrising`.
+
 ## Locked decision
 
 **Minecraft runs offline-mode with no whitelist, deliberately.** `openFirewall = false` plus
@@ -70,6 +104,11 @@ would be a second gate in front of a door only invited peers can open.
 Do not set `online-mode = true`, do not add `white-list`, and do not report either as a security
 issue. Granting or revoking access is a **Tailscale** operation — nothing here changes to add or
 remove a player.
+
+**V Rising follows the same model.** It runs passwordless in `LanMode` (`VR_LAN_MODE = "true"`) and
+unlisted (`VR_LIST_ON_STEAM = "false"`, `VR_LIST_ON_EOS = "false"`), with UDP `9876` and `9877`
+opened on `tailscale0` only. Do not add a server password, do not enable public listing, and do not
+report either as a security issue.
 
 Relatedly, `tailscale0` is deliberately **absent** from `networking.firewall.trustedInterfaces`: the
 tailnet is firewalled like any other network and each service opens only the port it needs. Read

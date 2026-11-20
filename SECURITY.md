@@ -19,6 +19,14 @@ evidence behind any entry — severities, command output, what was checked — i
   owner for the length of a session.
 - **Minecraft runs offline-mode with no whitelist.** Tailnet membership is the access control; see
   the [locked decision](README.md#locked-decision).
+- **V Rising runs passwordless in `LanMode` and unlisted (`VR_LIST_ON_STEAM = "false"`,
+  `VR_LIST_ON_EOS = "false"`).** Tailnet membership is the access control (same model as Minecraft;
+  see the [locked decision](README.md#locked-decision)); UDP `9876` and `9877` are opened on
+  `tailscale0` only.
+- **V Rising runs in a pinned rootful Podman container**
+  (`docker.io/trueosiris/vrising:2026-04-23-1036`) with host bind mounts restricted to
+  `/var/lib/vrising/server` and `/var/lib/vrising/persistentdata`. Container host writes are
+  confined to those two directories.
 
 ## Fixed — do not undo
 
@@ -40,6 +48,9 @@ evidence behind any entry — severities, command output, what was checked — i
 - **No private key material lives under `/home/mikaels`.** Keep it that way, and keep
   `authorized_keys` declared in `configuration.nix` rather than written by hand — an unmanaged copy
   silently survives key rotation.
+- **Podman uses `--network=host` (not Docker/Podman bridge port-publishing)** so V Rising's ports
+  never bypass NixOS's `networking.firewall` on `enp1s0`. The `vrising-backup` unit runs hardened
+  (`ProtectSystem=full`, `ProtectHome=true`, `PrivateTmp=true`, `NoNewPrivileges=true`).
 
 ## Operational
 
