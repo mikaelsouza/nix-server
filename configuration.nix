@@ -77,6 +77,9 @@ in
   users.users.mikaels = {
     isNormalUser = true;
     description = "Mikael Souza";
+    # Keep the user systemd manager alive after SSH logout so herdr-core
+    # terminals survive disconnects.
+    linger = true;
     # Must match programs.zsh below, or direnv's zsh hook never runs.
     shell = pkgs.zsh;
     extraGroups = [
@@ -107,6 +110,7 @@ in
     pkgs.neovim
     pkgs.nixd
     pkgs.uv
+    pkgs-unstable.herdr-core
   ];
 
   # --- SSH -----------------------------------------------------------------
